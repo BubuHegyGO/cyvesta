@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/services/data_service.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
 
 class SearchPage extends StatefulWidget {
-  final String? initialQuery;
-
-  const SearchPage({super.key, this.initialQuery});
+  const SearchPage({super.key});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -15,378 +12,329 @@ class _SearchPageState extends State<SearchPage> {
   static const Color bgColor = Color(0xFF07130A);
   static const Color accent = Color(0xFF8BC541);
 
-  final DataService _dataService = DataService();
-  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedRegion = 'Összes'; // Alapértelmezett: Összes hegyvidék
 
-  // Szűrő állapotok
-  RangeValues _priceRange = const RangeValues(10000, 80000);
-  String? _selectedCategory;
-  final Set<String> _selectedAmenities = {};
+  // Magyarország hegyvidékei / régiói
+  final List<String> _regions = const [
+    'Összes',
+    'Mátra',
+    'Bükk',
+    'Börzsöny',
+    'Bakony',
+    'Zemplén',
+    'Kőszegi-hegység',
+    'Cserhát',
+    'Mecsek',
+  ];
 
-  final List<String> _categories = ['Lombház', 'Faház', 'Vendégház', 'Borkóstoló'];
-  final List<String> _amenities = ['Dézsafürdő', 'Szauna', 'Kutyabarát', 'Panoráma', 'Klíma', 'Wi-Fi'];
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialQuery != null) {
-      if (_categories.contains(widget.initialQuery)) {
-        _selectedCategory = widget.initialQuery;
-      } else {
-        _searchController.text = widget.initialQuery!;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // Szűrő ablak megnyitása (Bottom Sheet)
-  void _openFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0D2113),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // CÍM & BEZÁRÁS
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Részletes Szűrők',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Colors.white54),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(color: Colors.white12),
-                  const SizedBox(height: 12),
-
-                  // 1. ÁR CSÚSZKA
-                  Text(
-                    'Árkategória: ${_priceRange.start.round()} Ft - ${_priceRange.end.round()} Ft / éj',
-                    style: const TextStyle(color: accent, fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  RangeSlider(
-                    values: _priceRange,
-                    min: 5000,
-                    max: 100000,
-                    divisions: 19,
-                    activeColor: accent,
-                    inactiveColor: Colors.white12,
-                    onChanged: (values) {
-                      setModalState(() => _priceRange = values);
-                      setState(() {});
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 2. KATEGÓRIA VÁLASZTÓ
-                  const Text('Kategória', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _categories.map((cat) {
-                      final isSelected = _selectedCategory == cat;
-                      return ChoiceChip(
-                        label: Text(cat),
-                        selected: isSelected,
-                        selectedColor: accent,
-                        backgroundColor: Colors.black38,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.black : Colors.white70,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onSelected: (selected) {
-                          setModalState(() => _selectedCategory = selected ? cat : null);
-                          setState(() {});
-                        },
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 3. EXTRA SZOLGÁLTATÁSOK
-                  const Text('Extrák & Szolgáltatások', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _amenities.map((amenity) {
-                      final isSelected = _selectedAmenities.contains(amenity);
-                      return FilterChip(
-                        label: Text(amenity),
-                        selected: isSelected,
-                        selectedColor: accent.withValues(alpha: 0.3),
-                        checkmarkColor: accent,
-                        backgroundColor: Colors.black38,
-                        labelStyle: TextStyle(
-                          color: isSelected ? accent : Colors.white70,
-                        ),
-                        onSelected: (selected) {
-                          setModalState(() {
-                            if (selected) {
-                              _selectedAmenities.add(amenity);
-                            } else {
-                              _selectedAmenities.remove(amenity);
-                            }
-                          });
-                          setState(() {});
-                        },
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // SZŰRŐK TÖRLÉSE & ALKALMAZÁS
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white24),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () {
-                            setModalState(() {
-                              _priceRange = const RangeValues(10000, 80000);
-                              _selectedCategory = null;
-                              _selectedAmenities.clear();
-                            });
-                            setState(() {});
-                          },
-                          child: const Text('Alaphelyzet', style: TextStyle(color: Colors.white70)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accent,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Szűrés', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Szűrési logika
-  List<Map<String, dynamic>> _getFilteredResults() {
-    final all = [..._dataService.getAccommodations(), ..._dataService.getExperiences()];
-    final query = _searchController.text.toLowerCase();
-
-    return all.where((item) {
-      final title = (item['title'] ?? '').toString().toLowerCase();
-      final location = (item['location'] ?? '').toString().toLowerCase();
-      final category = item['category'] ?? '';
-
-      final matchesQuery = query.isEmpty || title.contains(query) || location.contains(query);
-      final matchesCategory = _selectedCategory == null || category == _selectedCategory;
-
-      final priceNum = int.tryParse((item['price'] ?? '').toString().replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
-      final matchesPrice = priceNum >= _priceRange.start && priceNum <= _priceRange.end;
-
-      return matchesQuery && matchesCategory && matchesPrice;
-    }).toList();
-  }
+  // Minta adatbázis az ország különböző hegyvidékeiről
+  final List<Map<String, dynamic>> _allAccommodations = const [
+    {
+      'id': '1',
+      'title': 'Mátrai Panoráma Vendégház',
+      'location': 'Mátraháza',
+      'region': 'Mátra',
+      'price': '35.000 Ft / éj',
+      'rating': '4.9',
+      'image': 'assets/images/matra_background.png',
+      'category': 'Vendégház',
+    },
+    {
+      'id': '2',
+      'title': 'Bükki Szikla Chalet',
+      'location': 'Szilvásvárad',
+      'region': 'Bükk',
+      'price': '45.000 Ft / éj',
+      'rating': '5.0',
+      'image': 'assets/images/matra_background.png',
+      'category': 'Lakház',
+    },
+    {
+      'id': '3',
+      'title': 'Börzsönyi Patakparti Kuckó',
+      'location': 'Zebegény',
+      'region': 'Börzsöny',
+      'price': '30.000 Ft / éj',
+      'rating': '4.8',
+      'image': 'assets/images/matra_background.png',
+      'category': 'Faház',
+    },
+    {
+      'id': '4',
+      'title': 'Bakonyi Erdei Wellness Villa',
+      'location': 'Bakonybél',
+      'region': 'Bakony',
+      'price': '38.000 Ft / éj',
+      'rating': '4.9',
+      'image': 'assets/images/matra_background.png',
+      'category': 'Apartman',
+    },
+    {
+      'id': '5',
+      'title': 'Zempléni Várpanoráma Vendégház',
+      'location': 'Füzér',
+      'region': 'Zemplén',
+      'price': '32.000 Ft / éj',
+      'rating': '4.7',
+      'image': 'assets/images/matra_background.png',
+      'category': 'Vendégház',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final results = _getFilteredResults();
+    // Szűrés név, település ÉS hegyvidéki régió alapján
+    final filteredList = _allAccommodations.where((item) {
+      final matchesSearch = item['title'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item['location'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+
+      final matchesRegion = _selectedRegion == 'Összes' || item['region'] == _selectedRegion;
+
+      return matchesSearch && matchesRegion;
+    }).toList();
 
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // KERESŐSÁV + SZŰRŐ GOMB FEJLÉC
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search_rounded, color: accent, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
-                              decoration: const InputDecoration(
-                                hintText: 'Település, szállás név...',
-                                hintStyle: TextStyle(color: Colors.white38, fontSize: 13),
-                                border: InputBorder.none,
-                              ),
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                          if (_searchController.text.isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                setState(() {});
-                              },
-                              child: const Icon(Icons.clear_rounded, color: Colors.white54, size: 18),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // CÍMSOR
+              const Text(
+                'Keresés Hegységek Szerint 🏔️',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Válassz a magyar hegyvidékek közül!',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
 
-                  // SZŰRŐ GOMB
-                  GestureDetector(
-                    onTap: _openFilterBottomSheet,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _selectedCategory != null || _selectedAmenities.isNotEmpty
-                            ? accent
-                            : Colors.black.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: accent),
+              const SizedBox(height: 16),
+
+              // KERESŐ MEZŐ
+              TextField(
+                onChanged: (val) => setState(() => _searchQuery = val),
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Keresés név vagy település alapján...',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search_rounded, color: accent),
+                  filled: true,
+                  fillColor: Colors.black.withValues(alpha: 0.35),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: accent),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // HEGYVIDÉK / RÉGIÓ SZŰRŐ CHIP-EK (GÖRGETHETŐ SÁV)
+              SizedBox(
+                height: 38,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _regions.length,
+                  itemBuilder: (context, index) {
+                    final region = _regions[index];
+                    final isSelected = _selectedRegion == region;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        selected: isSelected,
+                        label: Text(region),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.black : Colors.white70,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        backgroundColor: Colors.black.withValues(alpha: 0.35),
+                        selectedColor: accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: isSelected ? accent : Colors.white12,
+                          ),
+                        ),
+                        showCheckmark: false,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            _selectedRegion = region;
+                          });
+                        },
                       ),
-                      child: Icon(
-                        Icons.tune_rounded,
-                        color: _selectedCategory != null || _selectedAmenities.isNotEmpty
-                            ? Colors.black
-                            : accent,
-                        size: 22,
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // TALÁLATOK SZÁMA ÉS LISTÁJA
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Találatok (${filteredList.length})',
+                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  if (_selectedRegion != 'Összes')
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Régió: $_selectedRegion',
+                        style: const TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
-                  ),
                 ],
               ),
-            ),
 
-            // TALÁLATOK LISTÁJA
-            Expanded(
-              child: results.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Nincs a szűrésnek megfelelő találat.',
-                        style: TextStyle(color: Colors.white54, fontSize: 14),
+              const SizedBox(height: 12),
+
+              Expanded(
+                child: filteredList.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.terrain_rounded, color: Colors.white24, size: 48),
+                            SizedBox(height: 12),
+                            Text(
+                              'Nincs találat ebben a hegyvidékben.',
+                              style: TextStyle(color: Colors.white54, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredList[index];
+                          return _buildSearchCard(context, item);
+                        },
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: results.length,
-                      itemBuilder: (context, index) {
-                        final item = results[index];
-                        return _buildResultCard(item);
-                      },
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildResultCard(Map<String, dynamic> item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AccommodationDetailPage(accommodationData: item),
-            ),
-          );
-        },
+  Widget _buildSearchCard(BuildContext context, Map<String, dynamic> item) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AccommodationDetailPage(accommodationData: item),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
         child: Row(
           children: [
+            // KÉP HEGYSÉG BADGE-EL
             ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
-              child: Image.asset(
-                item['image'] ?? 'assets/images/matra_background.png',
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  Image.asset(
+                    item['image'],
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.cover,
+                  ),
+                  Positioned(
+                    bottom: 4,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item['region'],
+                        style: const TextStyle(color: accent, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 14),
+
+            // RÉSZLETEK
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['category'] ?? '',
-                    style: const TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['title'] ?? '',
+                    item['title'],
+                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['location'] ?? '',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, color: accent, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item['location']} (${item['region']})',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item['price'] ?? '',
-                    style: const TextStyle(color: accent, fontSize: 13, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        item['price'],
+                        style: const TextStyle(color: accent, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                          const SizedBox(width: 2),
+                          Text(
+                            item['rating'],
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Icon(Icons.chevron_right_rounded, color: Colors.white38),
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
 import '../notifications/notifications_page.dart';
+import '../search/search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,11 +14,12 @@ class _HomePageState extends State<HomePage> {
   static const Color bgColor = Color(0xFF07130A);
   static const Color accent = Color(0xFF8BC541);
 
-  final List<Map<String, dynamic>> _accommodations = [
+  final List<Map<String, dynamic>> _accommodations = const [
     {
       'id': '1',
       'title': 'Mátrai Panoráma Vendégház',
       'location': 'Mátraháza',
+      'region': 'Mátra',
       'price': '35.000 Ft / éj',
       'rating': '4.9',
       'image': 'assets/images/matra_background.png',
@@ -25,21 +27,23 @@ class _HomePageState extends State<HomePage> {
     },
     {
       'id': '2',
+      'title': 'Bükki Szikla Chalet',
+      'location': 'Szilvásvárad',
+      'region': 'Bükk',
+      'price': '45.000 Ft / éj',
+      'rating': '5.0',
+      'image': 'assets/images/matra_background.png',
+      'isFeatured': true,
+    },
+    {
+      'id': '3',
       'title': 'Erdei Kuckó faház',
       'location': 'Galyatető',
+      'region': 'Mátra',
       'price': '28.000 Ft / éj',
       'rating': '4.8',
       'image': 'assets/images/matra_background.png',
       'isFeatured': false,
-    },
-    {
-      'id': '3',
-      'title': 'Hegyvidéki Wellness Apartman',
-      'location': 'Parádfürdő',
-      'price': '42.000 Ft / éj',
-      'rating': '5.0',
-      'image': 'assets/images/matra_background.png',
-      'isFeatured': true,
     },
   ];
 
@@ -53,31 +57,19 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // FEJLÉC (CÍM ÉS ÉRTÉSÍTÉSEK HARANG IKON)
+              // FEJLÉC (30%-KAL NAGYOBB LOGÓ KÉP + HARANG IKON)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'HegyGO 🌲',
-                        style: TextStyle(
-                          color: accent,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Fedezd fel a Mátra kincseit!',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ],
+                  // NÖVELT LOGÓ (SZÖVEG ÉS IKON NÉLKÜL)
+                  Image.asset(
+                    'assets/images/hegygo_logo.png',
+                    height: 50, // 38 -> 50 (+30% méretnövekedés)
+                    fit: BoxFit.contain,
                   ),
 
-                  // ÉRTÉSÍTÉSEK GOMB HARANG PIROS JELZÉSSEL
+                  // ÉRTÉSÍTÉSEK HARANG IKON
                   Stack(
                     children: [
                       Container(
@@ -115,9 +107,45 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // KIEMELT PARTNER BANNER SZEKCIÓ
+              // KERESŐSÁV
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SearchPage(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search_rounded, color: accent),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Keresés Mátra, Bükk, Bakony, Börzsöny...',
+                          style: TextStyle(color: Colors.white38, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(Icons.tune_rounded, color: Colors.white54, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // KIEMELT BANNER
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
@@ -161,7 +189,7 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Kiemelt Szálláshelyek',
+                    'Kiemelt Hegyvidéki Szállások',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -210,7 +238,6 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // KÉP
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: Stack(
@@ -237,11 +264,25 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ),
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        item['region'] ?? 'Hegyvidék',
+                        style: const TextStyle(color: accent, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
 
-            // ADATOK
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -275,7 +316,7 @@ class _HomePageState extends State<HomePage> {
                           const Icon(Icons.location_on_outlined, color: accent, size: 15),
                           const SizedBox(width: 4),
                           Text(
-                            item['location'],
+                            '${item['location']} (${item['region']})',
                             style: const TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
