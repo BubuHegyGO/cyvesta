@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../core/services/data_service.dart';
+
+import 'steps/step_amenities.dart';
+import 'steps/step_location.dart';
+import 'steps/step_photos.dart';
+import 'steps/step_pricing.dart';
 
 class AddAccommodationPage extends StatefulWidget {
   const AddAccommodationPage({super.key});
@@ -12,53 +16,96 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
   static const Color bgColor = Color(0xFF07130A);
   static const Color accent = Color(0xFF8BC541);
 
-  final _formKey = GlobalKey<FormState>();
-  final DataService _dataService = DataService();
+  int _currentStep = 0;
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
+  final _formKey0 = GlobalKey<FormState>();
+  final _formKey1 = GlobalKey<FormState>();
+  final _formKey2 = GlobalKey<FormState>();
+  final _formKey3 = GlobalKey<FormState>();
 
-  String _selectedCategory = 'Lombház';
-  final List<String> _categories = ['Lombház', 'Faház', 'Vendégház', 'Borkóstoló'];
+  final _zipController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  String _selectedRegion = 'Mátra';
+  int _maxGuests = 2;
+  int _bedrooms = 1;
+  int _beds = 1;
+  bool _isHighlight = false;
+
+  final List<String> _selectedAmenities = [];
+  final List<String> _uploadedPhotos = [];
 
   @override
   void dispose() {
+    _zipController.dispose();
+    _cityController.dispose();
+    _addressController.dispose();
     _titleController.dispose();
-    _locationController.dispose();
+    _descriptionController.dispose();
     _priceController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  void _saveAccommodation() {
-    if (_formKey.currentState!.validate()) {
-      final newItem = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'title': _titleController.text.trim(),
-        'category': _selectedCategory,
-        'location': _locationController.text.trim(),
-        'price': '${_priceController.text.trim()} Ft / éj',
-        'rating': '5.0',
-        'image': 'assets/images/matra_background.png',
-        'isFavorite': false,
-        'latitude': 47.87,
-        'longitude': 20.00,
-      };
-
-      _dataService.addAccommodation(newItem);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Color(0xFF0D2113),
-          content: Text(
-            'Új szálláshely sikeresen feltöltve és közzétéve!',
-            style: TextStyle(color: accent, fontWeight: FontWeight.bold),
-          ),
-        ),
-      );
-
-      Navigator.pop(context);
+  void _nextStep() {
+    if (_currentStep < 3) {
+      setState(() {
+        _currentStep++;
+      });
+    } else {
+      _submitForm();
     }
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
+    }
+  }
+
+  void _submitForm() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: bgColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: accent, width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_outline_rounded, color: accent, size: 28),
+            SizedBox(width: 10),
+            Text('Sikeres feladás!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'A szálláshirdetésed sikeresen rögzítésre került, és hamarosan megjelenik a HegyGO kínálatában.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('Rendben', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -67,127 +114,184 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: bgColor,
-        title: const Text('Új Szálláshely Feltöltése', style: TextStyle(color: Colors.white, fontSize: 18)),
+        elevation: 0,
+        title: const Text('Új szállás feladása 🏡', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTextField(
-                  controller: _titleController,
-                  label: 'Szálláshely megnevezése',
-                  hint: 'pl. Mátraterenyei Lombház',
-                  icon: Icons.home_rounded,
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Adja meg a nevet!' : null,
-                ),
-                const SizedBox(height: 16),
-
-                // KATEGÓRIA
-                const Text('Kategória', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCategory,
-                      dropdownColor: const Color(0xFF0D2113),
-                      isExpanded: true,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      items: _categories.map((cat) {
-                        return DropdownMenuItem(value: cat, child: Text(cat));
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedCategory = val);
-                      },
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: List.generate(4, (index) {
+                  final isActive = index <= _currentStep;
+                  return Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isActive ? accent : Colors.white12,
+                        borderRadius: BorderRadius.circular(3),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: accent.withValues(alpha: 0.5),
+                                  blurRadius: 6,
+                                )
+                              ]
+                            : [],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _locationController,
-                  label: 'Település / Helyszín',
-                  hint: 'pl. Mátrafüred',
-                  icon: Icons.location_on_rounded,
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Adja meg a helyszínt!' : null,
-                ),
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  controller: _priceController,
-                  label: 'Ár (Ft / éjszaka)',
-                  hint: 'pl. 35000',
-                  icon: Icons.payments_rounded,
-                  keyboardType: TextInputType.number,
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Adja meg az árat!' : null,
-                ),
-
-                const SizedBox(height: 32),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    onPressed: _saveAccommodation,
-                    child: const Text('Szálláshely Közzététele', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
+                  );
+                }),
+              ),
             ),
-          ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_currentStep + 1}. Lépés: ${_getStepTitle(_currentStep)}',
+                    style: const TextStyle(color: accent, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  Text(
+                    '${_currentStep + 1} / 4',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: _buildStepContent(_currentStep),
+              ),
+            ),
+
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.4),
+                border: const Border(top: BorderSide(color: Colors.white12)),
+              ),
+              child: Row(
+                children: [
+                  if (_currentStep > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white30),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _previousStep,
+                        child: const Text('Vissza', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  if (_currentStep > 0) const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _nextStep,
+                      child: Text(
+                        _currentStep == 3 ? 'Hirdetés Publikálása' : 'Tovább',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    required String? Function(String?) validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
-            prefixIcon: Icon(icon, color: accent, size: 20),
-            filled: true,
-            fillColor: Colors.black.withValues(alpha: 0.35),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.white12)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.white12)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: accent)),
-          ),
-        ),
-      ],
-    );
+  String _getStepTitle(int step) {
+    switch (step) {
+      case 0:
+        return 'Alapadatok & Helyszín';
+      case 1:
+        return 'Felszereltség';
+      case 2:
+        return 'Képek feltöltése';
+      case 3:
+        return 'Árazás & Kapcsolat';
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildStepContent(int step) {
+    switch (step) {
+      case 0:
+        return StepLocation(
+          formKey: _formKey0,
+          zipController: _zipController,
+          cityController: _cityController,
+          addressController: _addressController,
+          titleController: _titleController,
+          descriptionController: _descriptionController,
+          selectedRegion: _selectedRegion,
+          maxGuests: _maxGuests,
+          bedrooms: _bedrooms,
+          beds: _beds,
+          onRegionChanged: (val) {
+            if (val != null) setState(() => _selectedRegion = val);
+          },
+          onGuestsChanged: (val) => setState(() => _maxGuests = val),
+          onBedroomsChanged: (val) => setState(() => _bedrooms = val),
+          onBedsChanged: (val) => setState(() => _beds = val),
+        );
+      case 1:
+        return StepAmenities(
+          formKey: _formKey1,
+          selectedAmenities: _selectedAmenities,
+          onAmenitiesChanged: (amenities) {
+            setState(() {
+              _selectedAmenities.clear();
+              _selectedAmenities.addAll(amenities);
+            });
+          },
+        );
+      case 2:
+        return StepPhotos(
+          formKey: _formKey2,
+          uploadedPhotos: _uploadedPhotos,
+          onPhotosChanged: (photos) {
+            setState(() {
+              _uploadedPhotos.clear();
+              _uploadedPhotos.addAll(photos);
+            });
+          },
+        );
+      case 3:
+        return StepPricing(
+          formKey: _formKey3,
+          priceController: _priceController,
+          phoneController: _phoneController,
+          isHighlight: _isHighlight,
+          onHighlightChanged: (val) => setState(() => _isHighlight = val),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }

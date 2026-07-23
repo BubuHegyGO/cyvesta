@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 
-class StepLocation extends StatefulWidget {
+class StepLocation extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController zipController;
   final TextEditingController cityController;
   final TextEditingController addressController;
+  final TextEditingController titleController;
+  final TextEditingController descriptionController;
+  final String selectedRegion;
+  final int maxGuests;
+  final int bedrooms;
+  final int beds;
+  final ValueChanged<String?> onRegionChanged;
+  final ValueChanged<int> onGuestsChanged;
+  final ValueChanged<int> onBedroomsChanged;
+  final ValueChanged<int> onBedsChanged;
+
+  static const Color accent = Color(0xFF8BC541);
+
+  final List<String> _regions = const [
+    'Mátra', 'Bükk', 'Börzsöny', 'Zempléni-hegység', 'Cserhát',
+    'Bakony', 'Pilis', 'Gerecse', 'Mecsek', 'Balaton-felvidék',
+  ];
 
   const StepLocation({
     super.key,
@@ -12,186 +29,134 @@ class StepLocation extends StatefulWidget {
     required this.zipController,
     required this.cityController,
     required this.addressController,
+    required this.titleController,
+    required this.descriptionController,
+    required this.selectedRegion,
+    required this.maxGuests,
+    required this.bedrooms,
+    required this.beds,
+    required this.onRegionChanged,
+    required this.onGuestsChanged,
+    required this.onBedroomsChanged,
+    required this.onBedsChanged,
   });
 
   @override
-  State<StepLocation> createState() => _StepLocationState();
-}
-
-class _StepLocationState extends State<StepLocation> {
-  static const Color accent = Color(0xFF8BC541);
-
-  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
-      child: Form(
-        key: widget.formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Hol található a szálláshelyed?',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Add meg a pontos címet, hogy a vendégek könnyen odataláljanak!',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-            ),
-            const SizedBox(height: 24),
-
-            // Irányítószám és Település egy sorban
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Irányítószám *',
-                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: widget.zipController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _buildInputDecoration('pl. 3200'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Kötelező!';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Település *',
-                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: widget.cityController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _buildInputDecoration('pl. Gyöngyös / Mátrafüred'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Kérjük, add meg a települést!';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Utca, házszám
-            const Text(
-              'Utca, házszám *',
-              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: widget.addressController,
-              style: const TextStyle(color: Colors.white),
-              decoration: _buildInputDecoration('pl. Egerverő út 12.'),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Kérjük, add meg az utcát és házszámot!';
-                }
-                return null;
-              },
-            ),
-
-            const SizedBox(height: 28),
-
-            // Térképes Pozíció Előnézet (Dummy Box a Google Maps integráció előkészítéséhez)
-            const Text(
-              'Helymeghatározás a térképen',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 180,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: accent.withValues(alpha: 0.4)),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/matra_background.png'),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(Colors.black38, BlendMode.darken),
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Helyszín & Alapadatok',
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: titleController,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Szálláshely neve (pl. Mátrai Kabin)'),
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: selectedRegion,
+            dropdownColor: const Color(0xFF07130A),
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Hegyvidék / Régió'),
+            items: _regions.map((region) {
+              return DropdownMenuItem(value: region, child: Text(region));
+            }).toList(),
+            onChanged: onRegionChanged,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              SizedBox(
+                width: 100,
+                child: TextFormField(
+                  controller: zipController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration('Irányítószám'),
                 ),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.location_on, color: accent, size: 45),
-                  Positioned(
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.75),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.touch_app, color: accent, size: 14),
-                          SizedBox(width: 6),
-                          Text(
-                            'Kattints a pin pontosításához',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: cityController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration('Település (pl. Mátraháza)'),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: addressController,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Utca, házszám / Helyrajzi szám'),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: descriptionController,
+            maxLines: 3,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Rövid leírás a szállásról'),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Kapacitás',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          _buildCounterRow('Vendégek max. száma', maxGuests, onGuestsChanged),
+          _buildCounterRow('Hálószobák száma', bedrooms, onBedroomsChanged),
+          _buildCounterRow('Ágyak száma', beds, onBedsChanged),
+        ],
       ),
     );
   }
 
-  InputDecoration _buildInputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14),
-      filled: true,
-      fillColor: Colors.black.withValues(alpha: 0.35),
-      contentPadding: const EdgeInsets.all(16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+  Widget _buildCounterRow(String label, int value, ValueChanged<int> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, color: accent),
+                onPressed: value > 1 ? () => onChanged(value - 1) : null,
+              ),
+              Text(
+                '$value',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: accent),
+                onPressed: () => onChanged(value + 1),
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        borderSide: const BorderSide(color: Colors.white24),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: accent, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: const BorderSide(color: accent),
       ),
     );
   }
