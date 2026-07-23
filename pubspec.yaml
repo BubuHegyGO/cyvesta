@@ -12,9 +12,9 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  flutter_map: ^6.1.0
-  latlong2: ^0.9.1
-
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
+  google_maps_flutter: ^2.18.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

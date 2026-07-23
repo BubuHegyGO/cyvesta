@@ -30,6 +30,7 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _ntakController = TextEditingController(); // Kötelező NTAK szám controller
 
   String _selectedRegion = 'Mátra';
   int _maxGuests = 2;
@@ -49,6 +50,7 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
     _descriptionController.dispose();
     _priceController.dispose();
     _phoneController.dispose();
+    _ntakController.dispose(); // Törlés a memória-szivárgás elkerülésére
     super.dispose();
   }
 
@@ -81,13 +83,13 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
         ),
         title: const Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, color: accent, size: 28),
+            Icon(Icons.hourglass_top_rounded, color: accent, size: 28),
             SizedBox(width: 10),
-            Text('Sikeres feladás!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Sikeres rögzítés!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
         content: const Text(
-          'A szálláshirdetésed sikeresen rögzítésre került, és hamarosan megjelenik a HegyGO kínálatában.',
+          'A szálláshirdetésed sikeresen rögzítésre került.\n\nStátusz: Adminisztrátori jóváhagyásra vár (Ellenőrzés alatt). Az ellenőrzést követően azonnal megjelenik a HegyGO kínálatában.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -210,7 +212,7 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
                       ),
                       onPressed: _nextStep,
                       child: Text(
-                        _currentStep == 3 ? 'Hirdetés Publikálása' : 'Tovább',
+                        _currentStep == 3 ? 'Hirdetés Beküldése' : 'Tovább',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
@@ -249,6 +251,7 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
           addressController: _addressController,
           titleController: _titleController,
           descriptionController: _descriptionController,
+          ntakController: _ntakController, // Átadva a StepLocation widgetnek
           selectedRegion: _selectedRegion,
           maxGuests: _maxGuests,
           bedrooms: _bedrooms,
