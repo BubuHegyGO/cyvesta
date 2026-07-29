@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'features/home/main_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hegygo/features/home/main_screen.dart'; // A projekt szerinti főképernyő importja
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
   runApp(const HegyGoApp());
 }
 
@@ -14,12 +14,22 @@ class HegyGoApp extends StatelessWidget {
     return MaterialApp(
       title: 'HegyGO',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF07130A),
-        fontFamily: 'Roboto',
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF0D160E),
       ),
-      // ITT A LÉNYEG: A MainScreen-t adjuk meg kezdőoldalnak!
+      
+      // MAGYAR NYELVI ÉS NAPTÁR LOKALIZÁCIÓ
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('hu', 'HU'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('hu', 'HU'),
+
       home: const MainScreen(),
     );
   }

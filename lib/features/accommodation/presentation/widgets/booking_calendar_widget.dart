@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class BookingCalendarWidget extends StatefulWidget {
   final int pricePerNight;
-  final Function(DateTimeRange?, int, int)? onBookingSelected;
+  final Function(DateTimeRange?, int)? onBookingSelected;
 
   const BookingCalendarWidget({
     super.key,
@@ -16,11 +16,13 @@ class BookingCalendarWidget extends StatefulWidget {
 
 class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
   static const Color greenColor = Color(0xFF5A9E32);
-  static const Color redColor = Color(0xFFD34545);
+  static const Color redColor = Color(0xFFC83A3A);
   static const Color orangeColor = Color(0xFFE29547);
-  static const Color blueColor = Color(0xFF4A80C2);
+  static const Color blueColor = Color(0xFF4B80C3);
 
-  // Minta állapotok a naptárhoz (nap száma: típus)
+  int? _selectedStartDay = 18;
+  int? _selectedEndDay = 19;
+
   final Map<int, String> _dayStatuses = const {
     6: 'half_pending_start',
     7: 'pending',
@@ -28,51 +30,79 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
     9: 'pending',
     10: 'pending',
     11: 'half_pending_end',
-    18: 'selected',
-    19: 'selected',
     27: 'half_booked_start',
     28: 'booked',
     29: 'booked',
     30: 'half_booked_end',
   };
 
+  void _onDayTap(int day) {
+    final status = _dayStatuses[day];
+    if (status == 'booked' || status == 'pending') return;
+
+    setState(() {
+      if (_selectedStartDay == null || (_selectedStartDay != null && _selectedEndDay != null)) {
+        _selectedStartDay = day;
+        _selectedEndDay = null;
+      } else if (_selectedStartDay != null && _selectedEndDay == null) {
+        if (day >= _selectedStartDay!) {
+          _selectedEndDay = day;
+        } else {
+          _selectedStartDay = day;
+          _selectedEndDay = null;
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final int nightCount = (_selectedStartDay != null && _selectedEndDay != null)
+        ? (_selectedEndDay! - _selectedStartDay! + 1)
+        : (_selectedStartDay != null ? 1 : 0);
+    final int totalPrice = nightCount * widget.pricePerNight;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FEJLÉC (HÓNAP ÉS LÉPTETŐK)
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Október 2026',
+              const Text(
+                'Július 2026',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: 16,
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.chevron_left_rounded, color: Colors.white70, size: 28),
-                  SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 28),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, color: Colors.white70),
+                    onPressed: () {},
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: Colors.white70),
+                    onPressed: () {},
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
-
-          // HÉT NAPJAI FEJLÉC (MAGYARUL)
+          const SizedBox(height: 16),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -85,36 +115,36 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
               _DayHeader('VA'),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // NAPTÁR RÁCS
+          const SizedBox(height: 10),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              crossAxisSpacing: 6,
-              mainAxisSpacing: 6,
+              crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
             ),
-            itemCount: 33, // 2 üres cella az elején (Szerdával kezdődik) + 31 nap
+            itemCount: 33,
             itemBuilder: (context, index) {
               if (index < 2) {
-                return const SizedBox(); // Üres helyek Szerda előtt
+                return const SizedBox();
               }
-
               final day = index - 1;
-              final status = _dayStatuses[day] ?? 'available';
+              bool isSelected = false;
+              if (_selectedStartDay != null && _selectedEndDay != null) {
+                isSelected = day >= _selectedStartDay! && day <= _selectedEndDay!;
+              } else if (_selectedStartDay != null) {
+                isSelected = day == _selectedStartDay;
+              }
+              final status = isSelected ? 'selected' : (_dayStatuses[day] ?? 'available');
 
-              return _buildCalendarTile(day, status);
+              return GestureDetector(
+                onTap: () => _onDayTap(day),
+                child: _buildCalendarTile(day, status),
+              );
             },
           ),
-
-          const SizedBox(height: 24),
-          const Divider(color: Colors.white12),
-          const SizedBox(height: 16),
-
-          // JELMAGYARÁZAT (MAGYARUL)
+          const SizedBox(height: 20),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -123,97 +153,86 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
               _LegendItem(color: orangeColor, label: 'Függőben'),
             ],
           ),
-
-          const SizedBox(height: 20),
-
-          // KIVÁLASZTOTT DÁTUM ÉS ÖSSZEGZÉS
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Kiválasztott időszak:',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Kiválasztott dátumok:',
+                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    (_selectedStartDay != null && _selectedEndDay != null)
+                        ? 'Júl $_selectedStartDay. – Júl $_selectedEndDay.'
+                        : (_selectedStartDay != null)
+                            ? 'Júl $_selectedStartDay.'
+                            : 'Válassz dátumot',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      '2026. okt. 18. – okt. 19.',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Összesen:',
+                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} Ft',
+                    style: const TextStyle(
+                      color: Color(0xFF8BC541),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
                     ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ÖSSZESEN:',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '70.000 Ft',
-                      style: TextStyle(color: Color(0xFF8BC541), fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // CSEMPE ÉPÍTŐ METÓDUS ÁTLÓS OSZTÁSSAL
   Widget _buildCalendarTile(int day, String status) {
-    final String priceText = '${(widget.pricePerNight / 1000).round()}.000';
+    final String priceText = '${(widget.pricePerNight / 1000).round()}k Ft';
 
     if (status == 'selected') {
       return Container(
-        decoration: BoxDecoration(
-          color: blueColor,
-          borderRadius: BorderRadius.circular(6),
-        ),
+        decoration: BoxDecoration(color: blueColor, borderRadius: BorderRadius.circular(4)),
         child: _buildTileText(day, priceText, Colors.white),
       );
     }
-
     if (status == 'pending') {
       return Container(
-        decoration: BoxDecoration(
-          color: orangeColor,
-          borderRadius: BorderRadius.circular(6),
-        ),
+        decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(4)),
         child: _buildTileText(day, '', Colors.white),
       );
     }
-
     if (status == 'booked') {
       return Container(
-        decoration: BoxDecoration(
-          color: redColor,
-          borderRadius: BorderRadius.circular(6),
-        ),
+        decoration: BoxDecoration(color: redColor, borderRadius: BorderRadius.circular(4)),
         child: _buildTileText(day, '', Colors.white),
       );
     }
-
-    // ÁTLÓS FÉL-SZÍNEZETT CSEMPÉK (Start/End váltások)
-    if (status == 'half_pending_start' || status == 'half_pending_end' || status == 'half_booked_start' || status == 'half_booked_end') {
-      final Color secondColor = (status.contains('pending')) ? orangeColor : redColor;
+    if (status.startsWith('half_')) {
+      final Color secondColor = status.contains('pending') ? orangeColor : redColor;
       final bool isStart = status.contains('start');
 
       return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
         child: CustomPaint(
           painter: _DiagonalTilePainter(
             color1: isStart ? greenColor : secondColor,
@@ -224,12 +243,8 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
       );
     }
 
-    // ALAPÉRTELMEZETT SZABAD NAP (ZÖLD)
     return Container(
-      decoration: BoxDecoration(
-        color: greenColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
+      decoration: BoxDecoration(color: greenColor, borderRadius: BorderRadius.circular(4)),
       child: _buildTileText(day, priceText, Colors.white),
     );
   }
@@ -243,15 +258,16 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.bold,
-            fontSize: 13,
+            fontSize: 12,
           ),
         ),
         if (price.isNotEmpty)
           Text(
             price,
             style: TextStyle(
-              color: textColor.withValues(alpha: 0.85),
-              fontSize: 8,
+              color: textColor.withAlpha(220),
+              fontSize: 7.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
       ],
@@ -259,7 +275,6 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
   }
 }
 
-// ÁTLÓS RAJZOLÓ (DIAGONAL PAINTER) A FÉLIG SZÍNEZETT DÁTUMOKHOZ
 class _DiagonalTilePainter extends CustomPainter {
   final Color color1;
   final Color color2;
@@ -291,7 +306,6 @@ class _DiagonalTilePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// DAY HEADER
 class _DayHeader extends StatelessWidget {
   final String label;
   const _DayHeader(this.label);
@@ -299,17 +313,20 @@ class _DayHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 32,
+      width: 30,
       child: Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white60,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 }
 
-// JELMAGYARÁZAT ELEM
 class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
@@ -321,22 +338,25 @@ class _LegendItem extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 28,
-          height: 28,
+          width: 24,
+          height: 24,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(4),
           ),
           alignment: Alignment.center,
           child: const Text(
             '26',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          '- $label',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
         ),
       ],
     );

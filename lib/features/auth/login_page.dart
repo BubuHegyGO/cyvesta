@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final bool initialRegister; // ÚJ PARAMÉTER
+
+  const LoginPage({super.key, this.initialRegister = false});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -11,12 +13,19 @@ class _LoginPageState extends State<LoginPage> {
   static const Color bgColor = Color(0xFF07130A);
   static const Color accent = Color(0xFF8BC541);
 
-  bool _isLogin = true;
+  late bool _isLogin; // MÓDOSÍTVA: Az initState állítja be!
   bool _obscurePassword = true;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Ha a gomb felől az kerül átadásra, hogy regisztrálni szeretne, akkor hamisra állítjuk a bejelentkezést
+    _isLogin = !widget.initialRegister;
+  }
 
   @override
   void dispose() {
@@ -50,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
               // HIVATALOS LOGÓ KÉP AZ IMAGES MAPPÁBÓL
               Image.asset(
                 'assets/images/hegygo_logo.png',
-                height: 80, // Szép, jól látható méret a képernyő tetején
+                height: 80,
                 fit: BoxFit.contain,
               ),
 
@@ -115,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 28),
 
-              // REGISZTRÁCIÓS NÉV MEZŐ (CSAK HA REGISZTRÁCIÓ BAN VAGYUNK)
+              // REGISZTRÁCIÓS NÉV MEZŐ (CSAK HA REGISZTRÁCIÓBAN VAGYUNK)
               if (!_isLogin) ...[
                 TextField(
                   controller: _nameController,
@@ -213,7 +222,6 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Bejelentkezés/Regisztráció logika
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(

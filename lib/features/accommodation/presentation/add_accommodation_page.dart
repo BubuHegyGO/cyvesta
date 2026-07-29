@@ -30,7 +30,8 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _ntakController = TextEditingController(); // Kötelező NTAK szám controller
+  final _ntakController = TextEditingController();
+  final _websiteController = TextEditingController(); // Saját weboldal controller
 
   String _selectedRegion = 'Mátra';
   int _maxGuests = 2;
@@ -50,7 +51,8 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
     _descriptionController.dispose();
     _priceController.dispose();
     _phoneController.dispose();
-    _ntakController.dispose(); // Törlés a memória-szivárgás elkerülésére
+    _ntakController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -251,7 +253,8 @@ class _AddAccommodationPageState extends State<AddAccommodationPage> {
           addressController: _addressController,
           titleController: _titleController,
           descriptionController: _descriptionController,
-          ntakController: _ntakController, // Átadva a StepLocation widgetnek
+          ntakController: _ntakController,
+          websiteController: _websiteController, // Ātadva!
           selectedRegion: _selectedRegion,
           maxGuests: _maxGuests,
           bedrooms: _bedrooms,
