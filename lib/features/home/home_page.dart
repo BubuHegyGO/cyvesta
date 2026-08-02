@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+
 import 'package:hegygo/features/accommodation/accommodation_page.dart';
 import 'package:hegygo/features/accommodation/presentation/accommodation_detail_page.dart';
 import 'package:hegygo/features/experiences/experiences_page.dart';
@@ -16,26 +17,26 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // --- MAGYARORSZÁG ÖSSZES HEGYVIDÉKE ÉS LEÍRÁSAIK ---
-  final Map<String, String> _regionDescriptions = {
-    'Mátra': 'Magyarország legmagasabb hegysége, csúcsa a Kékes (1014 m), vulkáni eredetű.',
-    'Bükk': 'Nagyrészt mészkőből álló fennsík, legmagasabb pontja a Szilvási-kő (961 m).',
-    'Börzsöny': 'Vulkáni kalderahegység, legmagasabb csúcsa a Csóványos (938 m).',
-    'Zempléni-hegység': 'Vulkáni vonulat, legmagasabb pontja a Nagy-Milic (895 m).',
-    'Cserhát': 'Alacsonyabb dombos-hegyes vidék, legmagasabb pontja a Naszály (652 m).',
-    'Aggteleki-karszt': 'Cseppkőbarlangjairól és alacsony karsztbérceiről ismert vidék.',
-    'Bakony': 'A Dunántúl legnagyobb hegyvidéke, legmagasabb pontja a Kőris-hegy (709 m).',
-    'Pilis': 'Mészkőhegység, legmagasabb csúcsa a Pilis-tető (756 m).',
-    'Gerecse': 'Melegkedvelő erdős hegyvidék, legmagasabb pontja a Gerecse (633 m).',
-    'Vértes': 'Dolomitból és mészkőből álló kopárabb hegység, legmagasabb pontja a Nagy-Csákány (487 m).',
-    'Budai-hegység': 'A főváros környéki hegyvidék, legmagasabb pontja a Nagy-Kopasz (559 m).',
-    'Visegrádi-hegység': 'Vulkáni vonulat a Duna kanyarulatánál, legmagasabb pontja a Dobogó-kő (699 m).',
-    'Velencei-hegység': 'Gránit alapzatú alacsony röghegység, legmagasabb pontja a Meleg-hegy (352 m).',
-    'Kőszegi-hegység': 'Az Alpok alatti kristályos palás vonulat, legmagasabb pontja az Írott-kő (882 m).',
-    'Soproni-hegység': 'Alacsony, erdős határhegység, legmagasabb pontja a Magas-bérc (557 m).',
-    'Mecsek': 'Dél-dunántúli szigethegység, legmagasabb pontja a Zengő (682 m).',
-    'Villányi-hegység': 'Déli, alacsony mészköves vonulat, legmagasabb pontja a Szársomlyó (442 m).',
-  };
+  // --- MAGYARORSZÁG ÖSSZES HEGYVIDÉKE ---
+  final List<String> _regions = const [
+    'Mátra',
+    'Bükk',
+    'Börzsöny',
+    'Zempléni-hegység',
+    'Cserhát',
+    'Aggteleki-karszt',
+    'Bakony',
+    'Pilis',
+    'Gerecse',
+    'Vértes',
+    'Budai-hegység',
+    'Visegrádi-hegység',
+    'Velencei-hegység',
+    'Kőszegi-hegység',
+    'Soproni-hegység',
+    'Mecsek',
+    'Villányi-hegység',
+  ];
 
   final Set<String> _selectedRegions = {};
   RangeValues _priceRange = const RangeValues(5000, 150000);
@@ -45,10 +46,12 @@ class _HomePageState extends State<HomePage> {
   final List<Map<String, dynamic>> _accommodationTypes = [
     {'title': 'Romantikus 2 fős', 'icon': Icons.favorite_outline},
     {'title': 'Erdei & Lombházak', 'icon': Icons.forest_outlined},
-    {'title': 'Wellness & Dézsa', 'icon': Icons.hot_tub_outlined},
+    {'title': 'Wellness', 'icon': Icons.hot_tub_outlined},
+    {'title': 'Medencés', 'icon': Icons.pool_outlined},
     {'title': 'Állatbarát', 'icon': Icons.pets_outlined},
     {'title': 'Családi & Gyerekbarát', 'icon': Icons.family_restroom_outlined},
-    {'title': 'Panorámás Luxus', 'icon': Icons.king_bed_outlined},
+    {'title': 'Ellátással', 'icon': Icons.restaurant_menu_outlined},
+    {'title': 'Önellátó', 'icon': Icons.flatware_outlined},
   ];
 
   // --- CAROUSEL ADATAI ---
@@ -56,7 +59,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': '1',
       'title': 'SZARVAS',
-      'subtitle': 'vendégház\na Kékesen',
+      'subtitle': 'vendégház a Kékesen',
       'priceTag': '10.000 Ft. /fő/éj-től',
       'imagePath': 'assets/images/szarvas.png',
       'location': 'Mátra - Kékestető',
@@ -69,8 +72,8 @@ class _HomePageState extends State<HomePage> {
     {
       'id': '2',
       'title': 'QUAD',
-      'subtitle': 'túrák a\nBükkben',
-      'priceTag': '8.000 Ft. /fő-től',
+      'subtitle': 'túrák a Bükkben',
+      'priceTag': 'Megnézem',
       'imagePath': 'assets/images/quad.png',
       'location': 'Bükk - Szilvásvárad',
       'price': '8.000 Ft / fő-től',
@@ -82,8 +85,8 @@ class _HomePageState extends State<HomePage> {
     {
       'id': '3',
       'title': 'BOROZÓ-CSÁRDA',
-      'subtitle': 'a\nMecsekben',
-      'priceTag': 'Asztalfoglalás',
+      'subtitle': 'a Mecsekben',
+      'priceTag': 'Megnézem',
       'imagePath': 'assets/images/csarda.png',
       'location': 'Mecsek - Villányi borvidék',
       'price': 'Asztalfoglalás / Kóstoló',
@@ -95,7 +98,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': '4',
       'title': 'PANORÁMA',
-      'subtitle': 'apartman\na Mátraházán',
+      'subtitle': 'apartman a Mátraházán',
       'priceTag': '12.500 Ft. /fő/éj-től',
       'imagePath': 'assets/images/panorama.png',
       'location': 'Mátra - Mátraháza',
@@ -165,46 +168,17 @@ class _HomePageState extends State<HomePage> {
 
   void _navigateToCategory(int index) {
     if (index == 0) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const AddAccommodationPage()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AccommodationPage(),
+        ),
+      );
     } else if (index == 1) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const ExperiencesPage()));
     } else if (index == 2) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const GastronomyPage()));
     }
-  }
-
-  void _showRegionInfoDialog(String regionName, String description) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1E261C),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
-          ),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  regionName,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white70),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          content: Text(
-            description,
-            style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
-          ),
-        );
-      },
-    );
   }
 
   // --- 1. HEGYVIDÉK KERESŐ MODAL ---
@@ -254,7 +228,7 @@ class _HomePageState extends State<HomePage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 10,
-                      children: _regionDescriptions.keys.map((region) {
+                      children: _regions.map((region) {
                         final isSelected = _selectedRegions.contains(region);
                         return Container(
                           decoration: BoxDecoration(
@@ -277,30 +251,14 @@ class _HomePageState extends State<HomePage> {
                               setState(() {});
                             },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    region,
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.black : Colors.white,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  GestureDetector(
-                                    onTap: () {
-                                      _showRegionInfoDialog(region, _regionDescriptions[region]!);
-                                    },
-                                    child: Icon(
-                                      Icons.info_outline,
-                                      size: 16,
-                                      color: isSelected ? Colors.black87 : const Color(0xFF8BC541),
-                                    ),
-                                  ),
-                                ],
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              child: Text(
+                                region,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.black : Colors.white,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ),
@@ -323,11 +281,12 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-              ));
-            },
-          );
-        },
-      );
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // --- 2. LENYÍLÓ SZÁLLÁSTÍPUS ÉS ÁR KERESŐ MODAL ---
@@ -447,8 +406,8 @@ class _HomePageState extends State<HomePage> {
                     RangeSlider(
                       values: _priceRange,
                       min: 0,
-                      max: 200000,
-                      divisions: 40,
+                      max: 300000,
+                      divisions: 60,
                       activeColor: const Color(0xFF8BC541),
                       inactiveColor: Colors.white24,
                       labels: RangeLabels(
@@ -473,23 +432,24 @@ class _HomePageState extends State<HomePage> {
                           foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-onPressed: () {
-  Navigator.pop(context);
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const AddAccommodationPage()),
-  );
-},
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AccommodationPage()),
+                          );
+                        },
                         child: const Text('Keresés Alkalmazása', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
                 ),
-              ));
-            },
-          );
-        },
-      );
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -500,7 +460,7 @@ onPressed: () {
       backgroundColor: const Color(0xFF0D160E),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -513,7 +473,7 @@ onPressed: () {
                     child: Image.asset(
                       'assets/images/logo.png',
                       key: UniqueKey(),
-                      height: 52,
+                      height: 50,
                       fit: BoxFit.contain,
                       alignment: Alignment.centerLeft,
                       errorBuilder: (context, error, stackTrace) => const Text(
@@ -528,7 +488,7 @@ onPressed: () {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
               // SZLOGEN A KERESŐ FÖLÖTT
               const Text(
@@ -540,13 +500,13 @@ onPressed: () {
                   letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
               // 1. FELSŐ HEGYVIDÉK KERESŐ SÁV
               GestureDetector(
                 onTap: _openFilterModal,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black26,
                     borderRadius: BorderRadius.circular(18),
@@ -554,8 +514,8 @@ onPressed: () {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, color: Color(0xFF8BC541), size: 18),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.search, color: Color(0xFF8BC541), size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _selectedRegions.isEmpty
@@ -563,7 +523,7 @@ onPressed: () {
                               : 'Kiválasztva: ${_selectedRegions.join(', ')}',
                           style: TextStyle(
                             color: _selectedRegions.isEmpty ? Colors.white54 : const Color(0xFF8BC541),
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: _selectedRegions.isEmpty ? FontWeight.normal : FontWeight.bold,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -572,14 +532,14 @@ onPressed: () {
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.tune, color: Color(0xFF8BC541), size: 18),
+                        icon: const Icon(Icons.tune, color: Color(0xFF8BC541), size: 20),
                         onPressed: _openFilterModal,
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
               // KATEGÓRIÁK
               Row(
@@ -591,13 +551,13 @@ onPressed: () {
                   _buildCategoryCard(2, 'Gasztro', Icons.restaurant),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
               // 2. SZÁLLÁSTÍPUS KERESŐ SÁV
               GestureDetector(
                 onTap: _openTypeAndPriceModal,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black26,
                     borderRadius: BorderRadius.circular(18),
@@ -605,8 +565,8 @@ onPressed: () {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.style, color: Color(0xFF8BC541), size: 18),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.search, color: Color(0xFF8BC541), size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _selectedAccommodationTypes.isEmpty
@@ -614,7 +574,7 @@ onPressed: () {
                               : 'Kiválasztva: ${_selectedAccommodationTypes.join(', ')}',
                           style: TextStyle(
                             color: _selectedAccommodationTypes.isEmpty ? Colors.white54 : const Color(0xFF8BC541),
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: _selectedAccommodationTypes.isEmpty ? FontWeight.normal : FontWeight.bold,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -623,18 +583,18 @@ onPressed: () {
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.tune, color: Color(0xFF8BC541), size: 18),
+                        icon: const Icon(Icons.tune, color: Color(0xFF8BC541), size: 20),
                         onPressed: _openTypeAndPriceModal,
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
 
               // CAROUSEL
               SizedBox(
-                height: 380,
+                height: 290,
                 child: PageView.builder(
                   controller: _pageController,
                   onPageChanged: (index) {
@@ -648,7 +608,7 @@ onPressed: () {
                   },
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // INDIKÁTOROK
               Row(
@@ -656,9 +616,9 @@ onPressed: () {
                 children: List.generate(_featuredItems.length, (index) {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
                     height: 4,
-                    width: _activeCardIndex == index ? 20 : 5,
+                    width: _activeCardIndex == index ? 22 : 6,
                     decoration: BoxDecoration(
                       color: _activeCardIndex == index ? const Color(0xFF8BC541) : Colors.white24,
                       borderRadius: BorderRadius.circular(2),
@@ -666,19 +626,19 @@ onPressed: () {
                   );
                 }),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // CALL TO ACTION GOMB
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A1E),
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   onPressed: () {
@@ -697,7 +657,7 @@ onPressed: () {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -713,7 +673,7 @@ onPressed: () {
           onTap: () => _navigateToCategory(index),
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A261C),
               borderRadius: BorderRadius.circular(14),
@@ -722,7 +682,7 @@ onPressed: () {
             child: Column(
               children: [
                 Icon(icon, color: const Color(0xFF8BC541), size: 22),
-                const SizedBox(height: 4),
+                const SizedBox(height: 5),
                 Text(
                   title,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
@@ -735,7 +695,11 @@ onPressed: () {
     );
   }
 
+  // --- CSEMPÉK ---
   Widget _buildTallFeaturedCard(Map<String, String> item) {
+    final bool isAccommodation = item['type'] == 'accommodation';
+    final String buttonText = isAccommodation ? item['priceTag']! : 'Megnézem';
+
     return GestureDetector(
       onTap: () => _openFeaturedDetail(item),
       child: Container(
@@ -749,8 +713,9 @@ onPressed: () {
           borderRadius: BorderRadius.circular(15),
           child: Column(
             children: [
+              // KÉP RÉSZ
               Expanded(
-                flex: 6,
+                flex: 7,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -769,7 +734,7 @@ onPressed: () {
                       child: Transform.rotate(
                         angle: -0.4,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
                           color: const Color(0xFFFFC107),
                           child: const Text(
                             'KIEMELT',
@@ -781,6 +746,7 @@ onPressed: () {
                   ],
                 ),
               ),
+              // FEKETE ALSÓ RÉSZ
               Expanded(
                 flex: 4,
                 child: Container(
@@ -795,34 +761,40 @@ onPressed: () {
                           Text(
                             item['title']!,
                             textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Color(0xFFFFC107),
-                              fontSize: 22,
+                              fontSize: 16,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            item['subtitle']!,
+                            item['subtitle']!.replaceAll('\n', ' '),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.1),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
                           ),
                         ],
                       ),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 5),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E3A1E),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFF8BC541)),
+                          border: Border.all(color: const Color(0xFF8BC541), width: 0.8),
                         ),
                         child: Text(
-                          item['priceTag']!,
+                          buttonText,
                           textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF8BC541),
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

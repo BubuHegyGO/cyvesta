@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-enum UserRole { guest, provider, business }
-
 class HostRegistrationPage extends StatefulWidget {
   const HostRegistrationPage({super.key});
 
@@ -12,323 +10,402 @@ class HostRegistrationPage extends StatefulWidget {
 class _HostRegistrationPageState extends State<HostRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
 
-  UserRole _selectedRole = UserRole.guest;
+  // Fő típus: 'guest' (Vendég) vagy 'partner' (Partner)
+  String _mainRole = 'partner';
 
+  // Partner al-kategória: 'accommodation' (Szállás), 'gastronomy' (Vendéglátás), 'other' (Egyéb szolgáltatás)
+  String _partnerType = 'accommodation';
+
+  // Controller-ek
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _ntakController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _businessNameController = TextEditingController();
+  final _ntakNumberController = TextEditingController();
   final _taxNumberController = TextEditingController();
+  final _locationController = TextEditingController();
   final _websiteController = TextEditingController();
-
-  final FocusNode _websiteFocusNode = FocusNode();
-  bool _hasShownWebsitePopup = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // POPUP FIGYELŐ A WEBOLDAL MEZŐHÖZ (SZÁLLÁSADÓ ÉS ÜZLET FÜLÖN EGYARÁNT)
-    _websiteFocusNode.addListener(() {
-      if (_websiteFocusNode.hasFocus && !_hasShownWebsitePopup) {
-        _hasShownWebsitePopup = true;
-        _showWebsiteOfferDialog();
-      }
-    });
-  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
-    _ntakController.dispose();
+    _phoneController.dispose();
+    _businessNameController.dispose();
+    _ntakNumberController.dispose();
     _taxNumberController.dispose();
+    _locationController.dispose();
     _websiteController.dispose();
-    _websiteFocusNode.dispose();
     super.dispose();
   }
 
-  // WEBOLDAL KÉSZÍTÉSES POPUP DIALOG
-  void _showWebsiteOfferDialog() {
+  // WEBOLDAL AJÁNLAT POPUP
+  void _showWebsiteOfferDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1E261C),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.language, color: Color(0xFF8BC541)),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Nincs még saját weboldalad?',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: const Text(
-            'Amennyiben nincs még saját weboldalad, a HegyGO csapata elkészíti Neked 25.000 Ft.(tárhely+domain)+havi 5000 Ft.(support díj) áron!\n\nBővebb információ: info@hegygo.hu',
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Rendben, köszönöm',
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E261C),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.language, color: Color(0xFF8BC541), size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Nincs még saját weboldalad?',
                 style: TextStyle(
-                  color: Color(0xFF8BC541),
+                  color: Colors.white,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ],
-        );
-      },
+        ),
+        content: const Text(
+          'Amennyiben nincs még saját weboldalad, a HegyGO csapata elkészíti Neked 25.000 Ft. (tárhely+domain)+havi 5000 Ft. (support díj) áron!\n\nBővebb információ: info@hegygo.hu',
+          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Rendben, köszönöm',
+              style: TextStyle(
+                color: Color(0xFF8BC541),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07130A),
+      backgroundColor: const Color(0xFF0D160E),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'HegyGO Regisztráció',
+          'Regisztráció',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // FIÓK TÍPUSA CÍM
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. FELSŐ FŐGOMBOK: VENDÉG ÉS PARTNER
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildRoleButton('guest', 'Vendég', Icons.person_outline),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildRoleButton('partner', 'Partner', Icons.handshake_outlined),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 2. HA PARTNER: HÁROM ALKATEGÓRIA GOMB
+              if (_mainRole == 'partner') ...[
                 const Text(
-                  'Fiók típusa',
+                  'Partner kategória választása:',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF8BC541),
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // FIÓK TÍPUSA VÁLASZTÓ TAB-OK
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildRoleTab('Vendég', UserRole.guest),
-                      _buildRoleTab('Szállásadó', UserRole.provider),
-                      _buildRoleTab('Üzlet', UserRole.business),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildPartnerTypeButton('accommodation', 'Szállás', Icons.home_outlined),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildPartnerTypeButton('gastronomy', 'Vendéglátás', Icons.restaurant_outlined),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildPartnerTypeButton('other', 'Egyéb szolgáltatás', Icons.grid_view_outlined),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
-
-                // TELJES NÉV / CÉGNÉV
-                _buildInputField(
-                  controller: _nameController,
-                  label: 'Teljes név / Cégnév',
-                  icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 16),
-
-                // E-MAIL CÍM
-                _buildInputField(
-                  controller: _emailController,
-                  label: 'E-mail cím',
-                  icon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-
-                // MEZŐK SZÁLLÁSADÓKNAK (NTAK SZÁM)
-                if (_selectedRole == UserRole.provider) ...[
-                  _buildInputField(
-                    controller: _ntakController,
-                    label: 'NTAK Regisztrációs Szám (Kötelező)',
-                    icon: Icons.verified_user_outlined,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '* Az NTAK számot az adminisztrátor ellenőrzi. Jóváhagyás után, megkapod az „ELLENŐRZÖTT PARTNER” címet!',
-                    style: TextStyle(
-                      color: Color(0xFFFFC107),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // MEZŐK ÜZLETEKNEK (ADÓSZÁM ÉS NTAK SZÁM)
-                if (_selectedRole == UserRole.business) ...[
-                  _buildInputField(
-                    controller: _taxNumberController,
-                    label: 'Adószám (Kötelező)',
-                    icon: Icons.receipt_long_outlined,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInputField(
-                    controller: _ntakController,
-                    label: 'NTAK Regisztrációs Szám (Opcionális)',
-                    icon: Icons.verified_user_outlined,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '* Az NTAK számot az adminisztrátor ellenőrzi. Jóváhagyás után, megkapod az „ELLENŐRZÖTT PARTNER” címet!',
-                    style: TextStyle(
-                      color: Color(0xFFFFC107),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // SAJÁT WEBOLDAL (CSAK SZÁLLÁSADÓ/ÜZLET ESETÉN, PONTOSAN UGYANAZZAL A POPUP FIGYELŐVEL)
-                if (_selectedRole != UserRole.guest) ...[
-                  _buildInputField(
-                    controller: _websiteController,
-                    focusNode: _websiteFocusNode,
-                    label: 'Saját weboldal címe (Opcionális)',
-                    icon: Icons.language,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // JELSZÓ
-                _buildInputField(
-                  controller: _passwordController,
-                  label: 'Jelszó',
-                  icon: Icons.lock_outline,
-                  obscureText: true,
-                ),
-                const SizedBox(height: 32),
-
-                // REGISZTRÁCIÓ GOMB
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC107),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sikeres regisztráció!'),
-                            backgroundColor: Color(0xFF8BC541),
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text(
-                      'Regisztráció',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
               ],
-            ),
+
+              // 3. KITÖLTENDŐ ADATOK (ŰRLAP)
+              const Text(
+                'Személyes & Kapcsolattartási Adatok',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              _buildTextField(_nameController, 'Teljes Név *', Icons.person),
+              const SizedBox(height: 12),
+              _buildTextField(_emailController, 'E-mail cím *', Icons.email, keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 12),
+              _buildTextField(_phoneController, 'Telefonszám *', Icons.phone, keyboardType: TextInputType.phone),
+              const SizedBox(height: 12),
+
+              // HA PARTNER (SZÁLLÁS / VENDÉGLÁTÁS / EGYÉB SZOLGÁLTATÁS)
+              if (_mainRole == 'partner') ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'Szolgáltatói & Céges Adatok',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildTextField(
+                  _businessNameController,
+                  _partnerType == 'accommodation'
+                      ? 'Szálláshely / Cég neve *'
+                      : _partnerType == 'gastronomy'
+                          ? 'Vendéglátóhely / Cég neve *'
+                          : 'Szolgáltatás / Cég neve *',
+                  Icons.business,
+                ),
+                const SizedBox(height: 12),
+
+                // NTAK SZÁM CSAK A SZÁLLÁSADÓNÁL
+                if (_partnerType == 'accommodation') ...[
+                  _buildTextField(
+                    _ntakNumberController,
+                    'NTAK regisztrációs szám *',
+                    Icons.confirmation_number_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // SAJÁT WEBOLDAL MEZŐ A POPUPPAL (AUTOMATIKUSAN FELUGRÓ)
+                TextFormField(
+                  controller: _websiteController,
+                  style: const TextStyle(color: Colors.white),
+                  onTap: () => _showWebsiteOfferDialog(context),
+                  decoration: InputDecoration(
+                    labelText: 'Saját weboldal címe (Opcionális)',
+                    labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+                    prefixIcon: const Icon(Icons.language, color: Color(0xFF8BC541), size: 20),
+                    filled: true,
+                    fillColor: Colors.black38,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white24),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF8BC541)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                _buildTextField(
+                  _taxNumberController,
+                  'Adószám / Nyilvántartási szám *',
+                  Icons.receipt_long,
+                ),
+                const SizedBox(height: 12),
+                _buildTextField(_locationController, 'Helyszín / Cím *', Icons.location_on),
+              ],
+
+              const SizedBox(height: 32),
+
+              // 4. REGISZTRÁCIÓ BEKÜLDÉSE GOMB
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8BC541),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      final String roleName = _mainRole == 'guest'
+                          ? 'Vendég'
+                          : _partnerType == 'accommodation'
+                              ? 'Partner (Szállás)'
+                              : _partnerType == 'gastronomy'
+                                  ? 'Partner (Vendéglátás)'
+                                  : 'Partner (Egyéb szolgáltatás)';
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Sikeres regisztráció mint: $roleName!'),
+                          backgroundColor: const Color(0xFF8BC541),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Regisztráció Véglegesítése',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // FIÓK TÍPUSA TAB WIDGET (FÜL VÁLTÁSKOR LEHETŐVÉ TESZI A POPUP ÚJABBI MEGJELENÉSÉT)
-  Widget _buildRoleTab(String label, UserRole role) {
-    final isSelected = _selectedRole == role;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedRole = role;
-            _hasShownWebsitePopup = false; // Váltáskor visszaállítjuk, hogy az új fülön is felugorhasson
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF8BC541) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+  // --- VENDÉG ÉS PARTNER FŐGOMBOK BUILDER ---
+  Widget _buildRoleButton(String role, String label, IconData icon) {
+    final bool isSelected = _mainRole == role;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _mainRole = role;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF8BC541) : Colors.black45,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF8BC541) : Colors.white24,
+            width: 1.5,
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.black : Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.black : Colors.white70,
+              size: 20,
             ),
-          ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.black : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // BEVITELI MEZŐ BUILDER WIDGET
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    FocusNode? focusNode,
-    bool obscureText = false,
+  // --- PARTNER AL-KATEGÓRIA GOMBOK BUILDER ---
+  Widget _buildPartnerTypeButton(String type, String label, IconData icon) {
+    final bool isSelected = _partnerType == type;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _partnerType = type;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E3A1E) : Colors.black26,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF8BC541) : Colors.white12,
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF8BC541) : Colors.white54,
+              size: 18,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF8BC541) : Colors.white70,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- BEVITELI MEZŐ BUILDER VALIDÁCIÓVAL ---
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
       controller: controller,
-      focusNode: focusNode,
-      obscureText: obscureText,
       keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Ez a mező kötelező!';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.white70, size: 20),
+        prefixIcon: Icon(icon, color: const Color(0xFF8BC541), size: 20),
         filled: true,
-        fillColor: Colors.black26,
-        enabledBorder: OutlineInputBorder(
+        fillColor: Colors.black38,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.white24),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF8BC541)),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
       ),
     );

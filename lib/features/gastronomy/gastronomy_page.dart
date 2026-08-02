@@ -209,7 +209,7 @@ class _GastronomyPageState extends State<GastronomyPage> {
                             border: Border.all(color: const Color(0xFF8BC541)),
                           ),
                           child: const Text(
-                            'Asztalfoglalás',
+                            'Megnézem', // Módosítva
                             style: TextStyle(
                               color: Color(0xFF8BC541),
                               fontSize: 12,

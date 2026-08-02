@@ -10,13 +10,6 @@ class GastronomyDetailPage extends StatefulWidget {
 }
 
 class _GastronomyDetailPageState extends State<GastronomyDetailPage> {
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String _selectedTimeSlot = '18:00';
-  int _guestCount = 2;
-  final TextEditingController _noteController = TextEditingController();
-
-  final List<String> _timeSlots = ['12:00', '14:00', '18:00', '20:00'];
-
   final List<Map<String, String>> _menuItems = [
     {
       'title': 'HegyGO Kemencés Tál',
@@ -36,43 +29,8 @@ class _GastronomyDetailPageState extends State<GastronomyDetailPage> {
   ];
 
   @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 60)),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF8BC541),
-              onPrimary: Colors.black,
-              surface: Color(0xFF1E261C),
-              onSurface: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final item = widget.gastronomyData;
-    final String formattedDate =
-        "${_selectedDate.year}.${_selectedDate.month.toString().padLeft(2, '0')}.${_selectedDate.day.toString().padLeft(2, '0')}.";
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D160E),
@@ -308,173 +266,30 @@ class _GastronomyDetailPageState extends State<GastronomyDetailPage> {
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 28),
-                  const Text(
-                    'Asztalfoglalás / Időpont 🍷',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () => _selectDate(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.black38,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.calendar_month, color: Color(0xFF8BC541)),
-                              const SizedBox(width: 12),
-                              Text(
-                                formattedDate,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Icon(Icons.arrow_drop_down, color: Colors.white70),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: _timeSlots.map((time) {
-                      final isSelected = _selectedTimeSlot == time;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedTimeSlot = time),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF8BC541) : Colors.black38,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFF8BC541) : Colors.white24,
-                              ),
-                            ),
-                            child: Text(
-                              time,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: isSelected ? Colors.black : Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.black38,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Vendégek száma:',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: _guestCount > 1
-                                  ? () => setState(() => _guestCount--)
-                                  : null,
-                              icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF8BC541)),
-                            ),
-                            Text(
-                              '$_guestCount fő',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(() => _guestCount++),
-                              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF8BC541)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
                   const SizedBox(height: 24),
-                  TextField(
-                    controller: _noteController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Megjegyzés (pl. teraszos asztalt szeretnénk)',
-                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                      filled: true,
-                      fillColor: Colors.black38,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.white24),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF8BC541)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+
+                  // --- ÚJ: SÁRGA KIEMELT WEBOLDAL MEGTEKINTÉSE GOMB ---
                   SizedBox(
                     width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
+                    height: 52,
+                    child: ElevatedButton.icon(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Asztalfoglalás elküldve: $formattedDate $_selectedTimeSlot ($_guestCount fő)!',
-                            ),
-                            backgroundColor: const Color(0xFF8BC541),
-                          ),
-                        );
+                        // Weboldal megnyitási logika
                       },
+                      icon: const Icon(Icons.language, color: Colors.black, size: 22),
+                      label: const Text(
+                        'Weboldal megtekintése',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFC107),
-                        foregroundColor: Colors.black,
+                        backgroundColor: const Color(0xFFFFC107), // Kért sárga kiemelés
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.restaurant, color: Colors.black),
-                          SizedBox(width: 8),
-                          Text(
-                            'Asztalfoglalás Elküldése',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),

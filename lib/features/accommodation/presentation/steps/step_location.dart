@@ -45,6 +45,53 @@ class StepLocation extends StatelessWidget {
     'Kőszegi-hegység', 'Soproni-hegység', 'Mecsek', 'Villányi-hegység'
   ];
 
+  // AZONNAL FELUGRÓ PÁRBESZÉDABLAX
+  void _showWebsiteOfferDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E261C),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.language, color: Color(0xFF8BC541), size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Nincs még saját weboldalad?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Amennyiben nincs még saját weboldalad, a HegyGO csapata elkészíti Neked 25.000 Ft. (tárhely+domain)+havi 5000 Ft. (support díj) áron!\n\nBővebb információ: info@hegygo.hu',
+          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Rendben, köszönöm',
+              style: TextStyle(
+                color: Color(0xFF8BC541),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -77,62 +124,15 @@ class StepLocation extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // SAJÁT WEBOLDAL MEZŐ + PONTOS POP-UP
+          // SAJÁT WEBOLDAL MEZŐ -> RÁKAT TINTÁSKOR (onTap) AZONNAL FELUGRÓ POPUP
           TextFormField(
             controller: websiteController,
             style: const TextStyle(color: Colors.white),
+            onTap: () => _showWebsiteOfferDialog(context),
             decoration: InputDecoration(
               labelText: 'Saját weboldal (Opcionális)',
               labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
               prefixIcon: const Icon(Icons.language, color: Color(0xFF8BC541), size: 20),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.info_outline, color: Color(0xFF8BC541)),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E261C),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
-                      ),
-                      title: const Row(
-                        children: [
-                          Icon(Icons.language, color: Color(0xFF8BC541), size: 28),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Nincs még saját weboldalad?',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      content: const Text(
-                        'Amennyiben nincs még saját weboldalad, a HegyGO csapata elkészíti Neked 25.000 Ft. (tárhely+domain)+havi 5000 Ft. (support díj) áron!\n\nBővebb információ: info@hegygo.hu',
-                        style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text(
-                            'Rendben, köszönöm',
-                            style: TextStyle(
-                              color: Color(0xFF8BC541),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
               filled: true,
               fillColor: Colors.black26,
               enabledBorder: OutlineInputBorder(

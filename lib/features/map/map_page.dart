@@ -13,10 +13,13 @@ class _MapPageState extends State<MapPage> {
 
   late GoogleMapController _mapController;
 
-  // Kezdőpozíció: Mátraháza
+  // Térkép típusa (alapértelmezetten normal -> utcatérkép)
+  MapType _currentMapType = MapType.normal;
+
+  // Kezdőpozíció: Mátraháza közelebbi zoom szintről (14.5), hogy látszódjanak az utcák
   static const CameraPosition _kematra = CameraPosition(
     target: LatLng(47.8828, 19.9723),
-    zoom: 11.5,
+    zoom: 14.5, // ⬅️ Nagyobb zoom a részletes utcákhoz
   );
 
   final Set<Marker> _markers = {
@@ -40,6 +43,19 @@ class _MapPageState extends State<MapPage> {
     ),
   };
 
+  // Térkép nézet váltása (Normál -> Műholdas -> Hibrid)
+  void _onMapTypeChanged() {
+    setState(() {
+      if (_currentMapType == MapType.normal) {
+        _currentMapType = MapType.hybrid;
+      } else if (_currentMapType == MapType.hybrid) {
+        _currentMapType = MapType.terrain;
+      } else {
+        _currentMapType = MapType.normal;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,10 +69,10 @@ class _MapPageState extends State<MapPage> {
       ),
       body: Stack(
         children: [
-          // HIVATALOS GOOGLE MAPS UTCATÉRKÉP
+          // GOOGLE MAPS UTCATÉRKÉP
           GoogleMap(
             initialCameraPosition: _kematra,
-            mapType: MapType.normal,
+            mapType: _currentMapType, // Dynamic map type
             markers: _markers,
             myLocationEnabled: false,
             myLocationButtonEnabled: false,
@@ -100,7 +116,20 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
 
-          // ZOOM GOMBOK
+          // TÉRKÉP TÍPUS VÁLTÓ GOMB (Jobb fent)
+          Positioned(
+            top: 80,
+            right: 16,
+            child: FloatingActionButton.small(
+              heroTag: 'map_type',
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black87,
+              onPressed: _onMapTypeChanged,
+              child: const Icon(Icons.layers_rounded),
+            ),
+          ),
+
+          // ZOOM GOMBOK (Jobb lent)
           Positioned(
             bottom: 20,
             right: 16,
