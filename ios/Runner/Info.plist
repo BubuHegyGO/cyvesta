@@ -18,6 +18,7 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
@@ -46,7 +47,11 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- TELEFONHÍVÁS INDÍTÁSA (url_launcher) -->
+	<!-- Helymeghatározás magyarázata (az Apple figyelmeztetés javítása) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>A HegyGO a közeli vendégházak és látnivalók megjelenítéséhez használja a tartózkodási helyedet.</string>
+
+	<!-- Telefonhívás indítása funkcióhoz -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>tel</string>
