@@ -47,9 +47,24 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
-	<!-- Helymeghatározás magyarázata (az Apple figyelmeztetés javítása) -->
+	<!-- Hálózati elérés engedélyezése (Mobilnet / HTTP/HTTPS védelem) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<!-- Helymeghatározási engedélyek (GPS) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>A HegyGO a közeli vendégházak és látnivalók megjelenítéséhez használja a tartózkodási helyedet.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>A HegyGO a közeli vendégházak és látnivalók megjelenítéséhez használja a tartózkodási helyedet.</string>
+
+	<!-- Kamera és Galéria hozzáférés -->
+	<key>NSCameraUsageDescription</key>
+	<string>A HegyGO a fényképek készítéséhez kéri a kamera hozzáférést.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>A HegyGO a képek kiválasztásához kéri a galéria hozzáférést.</string>
 
 	<!-- Telefonhívás indítása funkcióhoz -->
 	<key>LSApplicationQueriesSchemes</key>
