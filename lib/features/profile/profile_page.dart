@@ -1,380 +1,251 @@
 import 'package:flutter/material.dart';
-import 'package:hegygo/features/profile/edit_profile_page.dart';
-import 'package:hegygo/features/profile/host_registration_page.dart';
-import 'package:hegygo/features/profile/admin_dashboard_page.dart';
-import 'package:hegygo/features/accommodation/presentation/my_accommodations_page.dart';
-import 'package:hegygo/features/favorites/favorites_page.dart';
+import '../../core/localization/app_language.dart';
+import '../../core/services/auth_state.dart';
+import '../../core/widgets/cyvesta_scaffold.dart';
+import '../accommodation/presentation/steps/add_listing_wizard_page.dart';
+import '../faq/faq_page.dart';
+import 'admin_dashboard_page.dart';
+import 'edit_profile_page.dart';
+import 'host_packages_page.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
+  static const Color mintGreenBorder = Color(0xFF99FF99);
+  static const Color turquoiseGlass = Color(0xCC14D1C4);
+  static const Color deepBlueIcon = Color(0xFF072A40);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color sunnyGold = Color(0xFFFF9F1C);
 
-class _ProfilePageState extends State<ProfilePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D160E),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A1E),
-        elevation: 0,
-        title: const Text(
-          'Profil & Beállítások',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        automaticallyImplyLeading: false,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+  void _showLanguageSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF072A40),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. FEJLÉC PROFIL KÁRTYA (BENDEGÚZ) -> KATTINTHATÓ
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EditProfilePage(),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A261C),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFFC107), width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    Stack(
-                      children: [
-                        const CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Color(0xFF8BC541),
-                          child: Icon(Icons.person, size: 36, color: Colors.white),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: Colors.black,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.verified,
-                              color: Color(0xFFFFC107),
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Text(
-                                'Bendegúz',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Icon(Icons.verified, color: Color(0xFFFFC107), size: 18),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'bendeguz@hegygo.hu',
-                            style: TextStyle(
-                              color: Colors.white60,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: const [
-                              Icon(Icons.check_circle, color: Color(0xFFFFC107), size: 14),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'Igazolt Szállásadó & Vállalkozás',
-                                  style: TextStyle(
-                                    color: Color(0xFFFFC107),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.white54),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 2. SZÁLLÁSADÓ / ÜZLET REGISZTRÁCIÓ
-            _buildMenuItem(
-              icon: Icons.storefront,
-              title: 'Szállásadó / Üzlet Regisztráció',
-              subtitle: 'NTAK szám / Adószám megadása és elbírálás',
-              borderColor: const Color(0xFFFFC107),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HostRegistrationPage(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // 3. ADMINISZTRÁCIÓS DASHBOARD
-            _buildMenuItem(
-              icon: Icons.admin_panel_settings,
-              title: 'Adminisztrációs Dashboard',
-              subtitle: 'Beküldött NTAK és Adószámok elbírálása',
-              borderColor: Colors.redAccent,
-              iconColor: Colors.redAccent,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminDashboardPage(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // AKTIVITÁS SZEKCIÓ
-            const Text(
-              'Aktivitás',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A261C),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Column(
-                children: [
-                  _buildListTile(
-                    icon: Icons.home_work_outlined,
-                    title: 'Saját Szállásaim',
-                    subtitle: 'Hirdetések kezelése és új szállás feladása',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MyAccommodationsPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(color: Colors.white12, height: 1),
-                  _buildListTile(
-                    icon: Icons.favorite_border,
-                    title: 'Kedvencek',
-                    subtitle: 'Elmentett szállások és élmények',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const FavoritesPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(color: Colors.white12, height: 1),
-                  _buildListTile(
-                    icon: Icons.confirmation_number_outlined,
-                    title: 'Foglalásaim',
-                    subtitle: 'Aktív és korábbi foglalások',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('A foglalások lista hamarosan elérhető!'),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // FIÓK KEZELÉSE SZEKCIÓ
-            const Text(
-              'Fiók Kezelése',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A261C),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Column(
-                children: [
-                  _buildListTile(
-                    icon: Icons.logout,
-                    title: 'Kijelentkezés',
-                    titleColor: const Color(0xFFFFC107),
-                    iconColor: const Color(0xFFFFC107),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Sikeres kijelentkezés!'),
-                          backgroundColor: Color(0xFF8BC541),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(color: Colors.white12, height: 1),
-                  _buildListTile(
-                    icon: Icons.delete_forever,
-                    title: 'Teszt Profil Törlése',
-                    subtitle: 'Fiók törlése és kijelentkezés a Regisztrációhoz',
-                    titleColor: Colors.redAccent,
-                    iconColor: Colors.redAccent,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profil törölve!'),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+            Text(AppLanguage.tr('lang_title'), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            _buildLangOption('🇭🇺 Magyar', 'hu', ctx),
+            _buildLangOption('🇬🇧 English', 'en', ctx),
+            _buildLangOption('🇬🇷 Ελληνικά', 'el', ctx),
+            _buildLangOption('🇩🇪 Deutsch', 'de', ctx),
+            _buildLangOption('🇷🇺 Русский', 'ru', ctx),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    Color borderColor = const Color(0xFF8BC541),
-    Color iconColor = const Color(0xFFFFC107),
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A261C),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 1.2),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
+  Widget _buildLangOption(String label, String code, BuildContext ctx) {
+    return ListTile(
+      title: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+      trailing: AppLanguage.currentLocale.value == code ? const Icon(Icons.check_circle, color: mintGreenBorder) : null,
+      onTap: () {
+        AppLanguage.setLanguage(code);
+        Navigator.pop(ctx);
+      },
+    );
+  }
+
+  // Hirdetésfeladás gomb kezelése (Partner ellenőrzéssel & Stripe-pal)
+  void _handleHostRegistrationTap(BuildContext context) {
+    if (AuthState.isPartner.value) {
+      // Ha már partner, közvetlenül az 5 lépéses varázsló indul
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingWizardPage()));
+    } else {
+      // Ha még nem partner, először a Stripe fizetési csomagok oldal ugrik fel
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const HostPackagesPage()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLanguage.currentLocale,
+      builder: (context, locale, child) {
+        final isEn = locale != 'hu';
+
+        return CyvestaScaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  // FEJLÉC
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        AppLanguage.tr('profile_title'),
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.language_rounded, color: mintGreenBorder, size: 22),
+                        onPressed: () => _showLanguageSelector(context),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                    ),
+                  const SizedBox(height: 12),
+
+                  // FELHASZNÁLÓI KÁRTYA
+                  ValueListenableBuilder<bool>(
+                    valueListenable: AuthState.isLoggedIn,
+                    builder: (context, loggedIn, child) {
+                      final name = loggedIn ? AuthState.userName.value : 'CYVESTA Partner & Admin';
+                      final email = loggedIn ? AuthState.userEmail.value : 'admin@cyvesta.com';
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: turquoiseGlass,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: mintGreenBorder, width: 1.4),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: const BoxDecoration(
+                                color: deepBlueIcon,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.person_rounded, color: sunnyGold, size: 30),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(color: textDark, fontSize: 15, fontWeight: FontWeight.w900),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    email,
+                                    style: TextStyle(color: textDark.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: deepBlueIcon,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      AppLanguage.tr('admin_badge'),
+                                      style: const TextStyle(color: mintGreenBorder, fontSize: 9.5, fontWeight: FontWeight.w900),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
+                  const SizedBox(height: 16),
+
+                  // 1. GYAKORI KÉRDÉSEK & HOGYAN MŰKÖDIK?
+                  _buildMenuCard(
+                    icon: Icons.help_outline_rounded,
+                    iconColor: sunnyGold,
+                    title: isEn ? 'How CYVESTA Works (FAQ) 💡' : 'Gyakori Kérdések & Működés 💡',
+                    subtitle: isEn ? 'Why CYVESTA is better than regular websites & portals' : 'Miben különbözik egy átlagos weboldaltól és portáltól?',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage())),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 2. ADMIN MODERÁCIÓS KÖZPONT
+                  _buildMenuCard(
+                    icon: Icons.shield_rounded,
+                    iconColor: mintGreenBorder,
+                    title: AppLanguage.tr('admin_center'),
+                    subtitle: AppLanguage.tr('admin_center_desc'),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardPage())),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 3. HIRDETÉSFELADÁS & PARTNERREGISZTRÁCIÓ (STRIPE + 5 LÉPÉSES VARÁZSLÓ)
+                  _buildMenuCard(
+                    icon: Icons.add_business_rounded,
+                    iconColor: Colors.lightBlueAccent,
+                    title: AppLanguage.tr('host_reg'),
+                    subtitle: AppLanguage.tr('host_reg_desc'),
+                    onTap: () => _handleHostRegistrationTap(context),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 4. HIRDETŐI TAGSÁGOK & STRIPE CSOMAGOK
+                  _buildMenuCard(
+                    icon: Icons.diamond_rounded,
+                    iconColor: sunnyGold,
+                    title: AppLanguage.tr('host_packages'),
+                    subtitle: AppLanguage.tr('host_packages_desc'),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HostPackagesPage())),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 5. PROFIL SZERKESZTÉSE
+                  _buildMenuCard(
+                    icon: Icons.edit_note_rounded,
+                    iconColor: Colors.tealAccent,
+                    title: AppLanguage.tr('edit_profile'),
+                    subtitle: AppLanguage.tr('edit_profile_desc'),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage())),
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.white54),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildListTile({
+  Widget _buildMenuCard({
     required IconData icon,
+    required Color iconColor,
     required String title,
-    String? subtitle,
+    required String subtitle,
     required VoidCallback onTap,
-    Color iconColor = const Color(0xFFFFC107),
-    Color titleColor = Colors.white,
   }) {
-    return ListTile(
-      onTap: onTap,
-      leading: Icon(icon, color: iconColor),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: titleColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF093753),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: mintGreenBorder.withValues(alpha: 0.35)),
       ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
-            )
-          : null,
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: deepBlueIcon,
+            shape: BoxShape.circle,
+            border: Border.all(color: iconColor, width: 1.2),
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: mintGreenBorder, size: 16),
+        onTap: onTap,
+      ),
     );
   }
 }

@@ -10,9 +10,13 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
+  static const Color bgColor = Color(0xFF0A1220);
+  static const Color cardBg = Color(0xFF111E36);
+  static const Color accentCyan = Color(0xFF00C0D4);
+
   final TextEditingController _nameController = TextEditingController(text: 'Bendegúz');
-  final TextEditingController _emailController = TextEditingController(text: 'bendeguz@hegygo.hu');
-  final TextEditingController _phoneController = TextEditingController(text: '+36 30 123 4567');
+  final TextEditingController _emailController = TextEditingController(text: 'info@cyvesta.com');
+  final TextEditingController _phoneController = TextEditingController(text: '+357 99 123 456');
 
   @override
   void dispose() {
@@ -26,8 +30,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Profiladatok sikeresen frissítve! 🎉'),
-          backgroundColor: Color(0xFF8BC541),
+          content: Text('Profile updated successfully! 🎉'),
+          backgroundColor: accentCyan,
         ),
       );
       Navigator.pop(context);
@@ -37,15 +41,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D160E),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A1E),
+        backgroundColor: const Color(0xFF0E192D),
         elevation: 0,
         title: const Text(
-          'Személyes Profil',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Edit Profile',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -53,17 +60,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
           key: _formKey,
           child: Column(
             children: [
-              // PROFILKÉP ÉS EDIT ICON
+              // PROFILE AVATAR & EDIT BADGE
               Center(
                 child: Stack(
                   children: [
                     CircleAvatar(
                       radius: 50,
-                      backgroundColor: const Color(0xFF1E3A1E),
+                      backgroundColor: cardBg,
                       child: const Icon(
                         Icons.person,
                         size: 60,
-                        color: Color(0xFF8BC541),
+                        color: accentCyan,
                       ),
                     ),
                     Positioned(
@@ -72,9 +79,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8BC541),
+                          color: accentCyan,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF0D160E), width: 2),
+                          border: Border.all(color: bgColor, width: 2),
                         ),
                         child: const Icon(
                           Icons.camera_alt,
@@ -86,23 +93,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF07130A),
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFFC107)),
+                  border: Border.all(color: accentCyan),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.verified, color: Color(0xFFFFC107), size: 16),
+                    Icon(Icons.verified, color: accentCyan, size: 16),
                     SizedBox(width: 6),
                     Text(
-                      'Igazolt Szállásadó & Vállalkozás',
+                      'Verified Partner & Business',
                       style: TextStyle(
-                        color: Color(0xFFFFC107),
+                        color: accentCyan,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -112,49 +119,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 30),
 
-              // NÉV
+              // NAME
               _buildTextField(
                 controller: _nameController,
-                label: 'Teljes név',
+                label: 'Full Name',
                 icon: Icons.person_outline,
-                validator: (val) => val == null || val.isEmpty ? 'Kérjük adja meg a nevét' : null,
+                validator: (val) => val == null || val.isEmpty ? 'Please enter your name' : null,
               ),
               const SizedBox(height: 16),
 
-              // E-MAIL
+              // EMAIL
               _buildTextField(
                 controller: _emailController,
-                label: 'E-mail cím',
+                label: 'Email Address',
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
-                validator: (val) => val == null || !val.contains('@') ? 'Érvénytelen e-mail' : null,
+                validator: (val) => val == null || !val.contains('@') ? 'Please enter a valid email' : null,
               ),
               const SizedBox(height: 16),
 
-              // TELEFONSZÁM
+              // PHONE
               _buildTextField(
                 controller: _phoneController,
-                label: 'Telefonszám',
+                label: 'Phone Number',
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 30),
 
-              // MENTÉS GOMB
+              // SAVE BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   onPressed: _saveProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8BC541),
+                    backgroundColor: accentCyan,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: const Text(
-                    'Módosítások Mentése',
+                    'Save Changes',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -184,9 +191,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: const Color(0xFF8BC541)),
+        prefixIcon: Icon(icon, color: accentCyan),
         filled: true,
-        fillColor: const Color(0xFF1A261C),
+        fillColor: cardBg,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: Colors.white24),
@@ -197,7 +204,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF8BC541), width: 1.5),
+          borderSide: const BorderSide(color: accentCyan, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
       ),
     );

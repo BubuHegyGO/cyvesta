@@ -1,69 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/localization/app_language.dart';
+import '../../../core/services/data_service.dart';
+import '../../../core/widgets/cyvesta_scaffold.dart';
 
 class ExperienceDetailPage extends StatefulWidget {
-  final Map<String, String> experienceData;
+  final Map<String, dynamic> itemData;
 
-  const ExperienceDetailPage({super.key, required this.experienceData});
+  const ExperienceDetailPage({super.key, required this.itemData});
 
   @override
   State<ExperienceDetailPage> createState() => _ExperienceDetailPageState();
 }
 
 class _ExperienceDetailPageState extends State<ExperienceDetailPage> {
+  static const Color darkBg = Color(0xFF061822);
+  static const Color mintGreenBorder = Color(0xFF99FF99);
+  static const Color turquoiseGlass = Color(0xCC14D1C4);
+  static const Color deepBlueIcon = Color(0xFF072A40);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color sunnyGold = Color(0xFFFF9F1C);
+
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String _selectedTimeSlot = '10:00';
-  int _participantCount = 1;
-  final TextEditingController _couponController = TextEditingController();
-  bool _isCouponApplied = false;
-  double _discountPercentage = 0.0;
+  String _selectedSlot = 'morning';
 
-  final List<String> _timeSlots = ['09:00', '11:30', '14:00', '16:30'];
-
-  @override
-  void dispose() {
-    _couponController.dispose();
-    super.dispose();
-  }
-
-  int get _basePrice {
-    final priceStr = widget.experienceData['price'] ?? '8000';
-    final cleaned = priceStr.replaceAll(RegExp(r'[^\d]'), '');
-    return int.tryParse(cleaned) ?? 8000;
-  }
-
-  int get _totalPrice {
-    double total = (_basePrice * _participantCount).toDouble();
-    if (_isCouponApplied) {
-      total = total * (1 - _discountPercentage);
-    }
-    return total.round();
-  }
-
-  void _applyCoupon() {
-    final code = _couponController.text.trim().toUpperCase();
-    if (code == 'HEGYGO10' || code == 'QUAD10') {
-      setState(() {
-        _isCouponApplied = true;
-        _discountPercentage = 0.10;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sikeresen érvényesítetted a 10%-os kuponkódot! 🎉'),
-          backgroundColor: Color(0xFF8BC541),
-        ),
-      );
-    } else if (code.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Érvénytelen kuponkód! Próbáld: HEGYGO10'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now(),
@@ -72,9 +34,9 @@ class _ExperienceDetailPageState extends State<ExperienceDetailPage> {
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF8BC541),
-              onPrimary: Colors.black,
-              surface: Color(0xFF1E261C),
+              primary: sunnyGold,
+              onPrimary: textDark,
+              surface: Color(0xFF072A40),
               onSurface: Colors.white,
             ),
           ),
@@ -82,435 +44,361 @@ class _ExperienceDetailPageState extends State<ExperienceDetailPage> {
         );
       },
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _launchWhatsApp(String phone, String title) async {
+    final msg = Uri.encodeComponent("Hello! I would like to book: $title on ${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day} ($_selectedSlot)");
+    final uri = Uri.parse("https://wa.me/$phone?text=$msg");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.experienceData;
-    final String formattedDate = "${_selectedDate.year}.${_selectedDate.month.toString().padLeft(2, '0')}.${_selectedDate.day.toString().padLeft(2, '0')}.";
+    final title = widget.itemData['title']?.toString() ?? 'BLUE LAGOON CRUISE ⛵';
+    final location = widget.itemData['location']?.toString() ?? 'Latchi Harbor & Akamas Marina';
+    final price = widget.itemData['price']?.toString() ?? '€45 / person';
+    final rating = widget.itemData['rating']?.toString() ?? '4.98';
+    final desc = widget.itemData['description']?.toString() ?? 'Luxury yacht cruise to the Crystal Blue Lagoon with swimming and Cypriot buffet lunch.';
+    final imagePath = widget.itemData['imagePath']?.toString() ?? 'assets/images/yacht.png';
+    final whatsapp = widget.itemData['whatsapp']?.toString() ?? '+35799123456';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D160E),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 260,
-            pinned: true,
-            backgroundColor: const Color(0xFF1E3A1E),
-            iconTheme: const IconThemeData(color: Colors.white),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    item['imagePath'] ?? 'assets/images/quad.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Image.asset(
-                      'assets/images/szarvas.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: const Color(0xFF1A261C),
-                        child: const Icon(Icons.terrain, color: Color(0xFF8BC541), size: 80),
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLanguage.currentLocale,
+      builder: (context, locale, child) {
+        final isEn = locale != 'hu';
+
+        final List<String> tags = isEn
+            ? ['Snorkeling Gear', 'Buffet Lunch', 'Cold Drinks', 'Music on Deck']
+            : ['Sznorkel felszerelés', 'Büféebéd', 'Hűsítő italok', 'Zene a fedélzeten'];
+
+        final priceLabel = isEn ? 'from €45 / person' : '€45 / fő-től';
+
+        return CyvestaScaffold(
+          body: Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  // FELSŐ KÉP + VISSZA GOMB
+                  SliverAppBar(
+                    expandedHeight: 260,
+                    pinned: true,
+                    backgroundColor: darkBg,
+                    leading: CircleAvatar(
+                      backgroundColor: deepBlueIcon.withValues(alpha: 0.8),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: mintGreenBorder, size: 18),
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.4),
-                          Colors.transparent,
-                          const Color(0xFF0D160E),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (item['isVerified'] == 'true')
-                    Positioned(
-                      bottom: 16,
-                      left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF07130A).withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF8BC541)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.verified, color: Color(0xFF8BC541), size: 16),
-                            SizedBox(width: 6),
-                            Text(
-                              'ELLENŐRZÖTT PARTNER',
-                              style: TextStyle(
-                                color: Color(0xFF8BC541),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    actions: [
+                      ValueListenableBuilder<List<Map<String, dynamic>>>(
+                        valueListenable: DataService.favoriteItems,
+                        builder: (context, favs, child) {
+                          final isFav = DataService.isFavorite(widget.itemData);
+                          return CircleAvatar(
+                            backgroundColor: deepBlueIcon.withValues(alpha: 0.8),
+                            child: IconButton(
+                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.redAccent : Colors.white, size: 20),
+                              onPressed: () => DataService.toggleFavorite(widget.itemData),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item['title'] ?? 'Élmény',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFFFC107)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              item['rating'] ?? '5.0',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(width: 12),
                     ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, color: Color(0xFF8BC541), size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['location'] ?? 'Hegyvidék',
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(color: deepBlueIcon),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Az élményről',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item['description'] ?? 'Fantasztikus hegyvidéki élmény várja a résztvevőket!',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.87), fontSize: 14, height: 1.5),
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A261C),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF8BC541).withValues(alpha: 0.4)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.map, color: Color(0xFF8BC541)),
-                            SizedBox(width: 8),
-                            Text(
-                              'Túraútvonal & Részletek',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(color: Colors.white24, height: 20),
-                        _buildRouteDetailRow(Icons.timer_outlined, 'Időtartam:', 'Kb. 1.5 - 2 óra'),
-                        const SizedBox(height: 8),
-                        _buildRouteDetailRow(Icons.terrain, 'Nehézségi szint:', 'Közepes / Kezdőknek is'),
-                        const SizedBox(height: 8),
-                        _buildRouteDetailRow(Icons.flag_outlined, 'Kiindulópont:', item['location'] ?? 'Központi parkoló'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  const Text(
-                    '1. Válassz dátumot',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: () => _selectDate(context),
-                    child: Container(
+
+                  // TARTALOM
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.black38,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // CÍM & ÁR KÁRTYA
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: turquoiseGlass,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder, width: 1.4),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        style: const TextStyle(color: textDark, fontSize: 16.5, fontWeight: FontWeight.w900),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: deepBlueIcon, borderRadius: BorderRadius.circular(8)),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.star, color: sunnyGold, size: 14),
+                                          const SizedBox(width: 4),
+                                          Text(rating, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on_outlined, color: deepBlueIcon, size: 16),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        location,
+                                        style: TextStyle(color: textDark.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(priceLabel, style: const TextStyle(color: deepBlueIcon, fontSize: 14.5, fontWeight: FontWeight.w900)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // GOMBOK (WhatsApp / Belső Chat)
                           Row(
                             children: [
-                              const Icon(Icons.calendar_month, color: Color(0xFF8BC541)),
-                              const SizedBox(width: 12),
-                              Text(
-                                formattedDate,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF25D366),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.chat_rounded, size: 18),
+                                  label: const Text('WhatsApp Chat', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                                  onPressed: () => _launchWhatsApp(whatsapp, title),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: deepBlueIcon,
+                                    foregroundColor: mintGreenBorder,
+                                    side: const BorderSide(color: mintGreenBorder, width: 1.2),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.forum_outlined, size: 18),
+                                  label: Text(isEn ? 'In-App Chat' : 'Belső Chat', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(isEn ? 'Connecting to tour guide...' : 'Kapcsolódás a túravezetőhöz...')),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Colors.white70),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '2. Válassz túra időpontot',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: _timeSlots.map((time) {
-                      final isSelected = _selectedTimeSlot == time;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedTimeSlot = time),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          const SizedBox(height: 16),
+
+                          // LEÍRÁS & SZOLGÁLTATÁSOK
+                          Container(
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF8BC541) : Colors.black38,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFF8BC541) : Colors.white24,
-                              ),
+                              color: deepBlueIcon,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder.withValues(alpha: 0.6)),
                             ),
-                            child: Text(
-                              time,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: isSelected ? Colors.black : Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '3. Hány fővel jelentkezel?',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.black38,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Résztvevők száma:',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: _participantCount > 1
-                                  ? () => setState(() => _participantCount--)
-                                  : null,
-                              icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF8BC541)),
-                            ),
-                            Text(
-                              '$_participantCount fő',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(() => _participantCount++),
-                              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF8BC541)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Kuponkód (Opcionális)',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _couponController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Pl. HEGYGO10',
-                            hintStyle: const TextStyle(color: Colors.white38),
-                            filled: true,
-                            fillColor: Colors.black38,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white24),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF8BC541)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.sailing_rounded, color: sunnyGold, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isEn ? 'About the Tour ⛵' : 'A Hajókirándulásról ⛵',
+                                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: tags.map((t) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF093753),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: mintGreenBorder.withValues(alpha: 0.4)),
+                                    ),
+                                    child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                  )).toList(),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: _applyCoupon,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8BC541),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Beváltás',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Sikeres jelentkezés: $formattedDate $_selectedTimeSlot ($_participantCount fő)!',
+                          const SizedBox(height: 16),
+
+                          // 1. DÁTUM VÁLASZTÁS
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: deepBlueIcon,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder.withValues(alpha: 0.6)),
                             ),
-                            backgroundColor: const Color(0xFF8BC541),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFC107),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.flash_on, color: Colors.black),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Jelentkezés • ${_totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} Ft',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEn ? '1. Select Tour Date 📅' : '1. Válassz Túra Dátumot 📅',
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 10),
+                                GestureDetector(
+                                  onTap: _pickDate,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: turquoiseGlass,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: mintGreenBorder),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.calendar_today_rounded, color: deepBlueIcon, size: 18),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              '${_selectedDate.year}. ${_selectedDate.month.toString().padLeft(2, '0')}. ${_selectedDate.day.toString().padLeft(2, '0')}',
+                                              style: const TextStyle(color: textDark, fontSize: 13, fontWeight: FontWeight.w900),
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          isEn ? 'Change ✏️' : 'Módosítás ✏️',
+                                          style: const TextStyle(color: deepBlueIcon, fontSize: 11.5, fontWeight: FontWeight.w900),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(height: 14),
+
+                          // 2. IDŐSÁV VÁLASZTÁS
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: deepBlueIcon,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder.withValues(alpha: 0.6)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isEn ? '2. Select Departure Time ⏰' : '2. Válassz Indulási Idősávot ⏰',
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 10),
+                                _buildSlotOption(
+                                  id: 'morning',
+                                  title: isEn ? '09:30 - 14:00 (Morning Cruise)' : '09:30 - 14:00 (Délelőtti Túra)',
+                                  subtitle: isEn ? 'Includes buffet lunch & Blue Lagoon swim' : 'Büféebéddel és fürdőzéssel a Kék Lagúnánál',
+                                ),
+                                const SizedBox(height: 8),
+                                _buildSlotOption(
+                                  id: 'sunset',
+                                  title: isEn ? '15:30 - 19:30 (Sunset Cruise)' : '15:30 - 19:30 (Naplemente Túra)',
+                                  subtitle: isEn ? 'Sunset views & cocktails on board' : 'Naplemente nézés és koktélok a fedélzeten',
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 30),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildRouteDetailRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70, size: 18),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white60, fontSize: 13),
+  Widget _buildSlotOption({required String id, required String title, required String subtitle}) {
+    final isSelected = _selectedSlot == id;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSlot = id),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? sunnyGold : const Color(0xFF093753),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? Colors.white : mintGreenBorder.withValues(alpha: 0.5), width: 1.3),
         ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-          ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              color: isSelected ? textDark : mintGreenBorder,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isSelected ? textDark : Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: isSelected ? textDark.withValues(alpha: 0.8) : Colors.white60,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

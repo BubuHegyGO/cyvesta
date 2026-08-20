@@ -1,95 +1,142 @@
+import 'package:flutter/material.dart';
+
 class DataService {
-  static final DataService _instance = DataService._internal();
-  factory DataService() => _instance;
-  DataService._internal();
+  static final ValueNotifier<List<Map<String, dynamic>>> favoriteItems = ValueNotifier<List<Map<String, dynamic>>>([]);
 
-  final List<Map<String, dynamic>> _accommodations = [
+  static final ValueNotifier<List<Map<String, dynamic>>> customListings = ValueNotifier<List<Map<String, dynamic>>>([]);
+
+  static final ValueNotifier<List<Map<String, dynamic>>> accommodations = ValueNotifier<List<Map<String, dynamic>>>([
     {
-      'id': '1',
-      'title': 'Panoráma Vendégház',
-      'category': 'Vendégház',
-      'location': 'Visegrád',
-      'price': '35.000 Ft / éj',
-      'rating': '4.9',
-      'image': 'assets/images/matra_background.png',
-      'isFavorite': false,
-      'latitude': 47.8723,
-      'longitude': 20.0031,
-      'status': 'approved', // Jóváhagyva
-      'ntakNumber': 'MA22001111',
-    },
-    {
-      'id': '2',
-      'title': 'Mátrai Panoráma Lombház',
-      'category': 'Lombház',
-      'location': 'Mátrafüred',
-      'price': '38.000 Ft / éj',
-      'rating': '5.0',
-      'image': 'assets/images/matra_background.png',
-      'isFavorite': true,
-      'latitude': 47.8311,
-      'longitude': 19.9682,
+      'id': 'acc_1',
+      'title': 'VILLA CORAL BAY LUXURY 🏖️',
+      'category': 'accommodation',
+      'location': 'Coral Bay, Paphos',
+      'price': '€240 / night',
+      'rating': '4.98',
+      'badge': 'PREMIUM VILLA',
       'status': 'approved',
-      'ntakNumber': 'MA22002222',
+      'imagePath': 'assets/images/szarvas.png',
+      'phone': '+35799123456',
+      'whatsapp': '+35799123456',
+      'ical_url': '',
+      'description': 'Exkluzív tengerparti villa privát medencével, panorámás kilátással és 4 tágas hálószobával.',
     },
-  ];
-
-  final List<Map<String, dynamic>> _experiences = [
     {
-      'id': 'e1',
-      'title': 'Bükki Borkóstoló & Pincetúra',
-      'category': 'Borkóstoló',
-      'location': 'Eger',
-      'price': '12.000 Ft / fő',
-      'rating': '4.8',
-      'image': 'assets/images/matra_background.png',
-      'isFavorite': false,
-      'latitude': 47.9026,
-      'longitude': 20.3732,
+      'id': 'acc_2',
+      'title': 'KYRENIA PANORAMA APARTMENT 🏰',
+      'category': 'accommodation',
+      'location': 'Kyrenia Old Town & Castle',
+      'price': '€185,000',
+      'rating': '4.95',
+      'badge': 'FOR SALE',
       'status': 'approved',
-      'ntakNumber': 'NTAK-EGER-01',
+      'imagePath': 'assets/images/szarvas.png',
+      'phone': '+35799654321',
+      'whatsapp': '+35799654321',
+      'ical_url': '',
+      'description': 'Befektetésre kiváló 2 hálószobás dizájn lakás hegyi és tengeri panorámával.',
     },
-  ];
+    {
+      'id': 'acc_3',
+      'title': 'CASTLE VIEW STEAKHOUSE 🥩',
+      'category': 'gastronomy',
+      'location': 'Kyrenia Castle Promenade',
+      'price': '€32 / person',
+      'rating': '4.97',
+      'badge': 'PREMIUM STEAK',
+      'status': 'approved',
+      'imagePath': 'assets/images/etterem.png',
+      'phone': '+35799112233',
+      'whatsapp': '+35799112233',
+      'ical_url': '',
+      'description': 'Prémium tengerparti grillétterem és steakhouse lélegzetelállító kilátással.',
+    },
+    {
+      'id': 'acc_4',
+      'title': 'THE PALM ARTISAN BAKERY 🥐',
+      'category': 'gastronomy',
+      'location': 'Coral Bay Beachfront, Paphos',
+      'price': '€4.50-tól',
+      'rating': '4.95',
+      'badge': 'COFFEE & BAKERY',
+      'status': 'approved',
+      'imagePath': 'assets/images/cukraszda.png',
+      'phone': '+35799445566',
+      'whatsapp': '+35799445566',
+      'ical_url': '',
+      'description': 'Kézműves pékáruk, frissen sült vajas croissant-ok és specialty kávék.',
+    },
+    {
+      'id': 'acc_5',
+      'title': 'KYRENIA HARBOUR BREEZE 🐟',
+      'category': 'gastronomy',
+      'location': 'Kyrenia Old Harbour',
+      'price': '€24 / person',
+      'rating': '4.93',
+      'badge': 'SEAFOOD & MEZE',
+      'status': 'approved',
+      'imagePath': 'assets/images/csarda.png',
+      'phone': '+35799778899',
+      'whatsapp': '+35799778899',
+      'ical_url': '',
+      'description': 'Mediterrán kikötői taverna autentikus friss halételekkel és meze tálakkal.',
+    },
+  ]);
 
-  // Csak a JÓVÁHAGYOTT szállásokat adjuk vissza a vendég felületre
-  List<Map<String, dynamic>> getAccommodations() {
-    return _accommodations.where((item) => item['status'] == 'approved').toList();
+  static void addListing(Map<String, dynamic> item) {
+    customListings.value = [item, ...customListings.value];
+    accommodations.value = [item, ...accommodations.value];
   }
 
-  List<Map<String, dynamic>> getExperiences() {
-    return _experiences.where((item) => item['status'] == 'approved').toList();
-  }
-
-  // Admin felületnek: az ÖSSZES szállás (a várakozókkal együtt)
-  List<Map<String, dynamic>> getAllAccommodationsForAdmin() => _accommodations;
-
-  // Új szállás feltöltése -> Alapértelmezetten 'pending' (ellenőrzésre vár)
-  void addAccommodation(Map<String, dynamic> newAccommodation) {
-    newAccommodation['status'] = 'pending';
-    _accommodations.insert(0, newAccommodation);
-  }
-
-  // Admin jóváhagyás
-  void approveAccommodation(String id) {
-    for (var item in _accommodations) {
-      if (item['id'] == id) {
-        item['status'] = 'approved';
-        break;
-      }
+  static void approveAccommodation(String id) {
+    final list = List<Map<String, dynamic>>.from(accommodations.value);
+    final index = list.indexWhere((item) => item['id'] == id);
+    if (index >= 0) {
+      list[index]['status'] = 'approved';
+      accommodations.value = list;
     }
   }
 
-  // Admin elutasítás
-  void rejectAccommodation(String id) {
-    _accommodations.removeWhere((item) => item['id'] == id);
+  static void rejectAccommodation(String id) {
+    final list = List<Map<String, dynamic>>.from(accommodations.value);
+    final index = list.indexWhere((item) => item['id'] == id);
+    if (index >= 0) {
+      list[index]['status'] = 'rejected';
+      accommodations.value = list;
+    }
   }
 
-  void toggleFavorite(String id) {
-    for (var item in [..._accommodations, ..._experiences]) {
-      if (item['id'] == id) {
-        item['isFavorite'] = !(item['isFavorite'] ?? false);
-        break;
-      }
+  static void deleteListing(String id) {
+    final list = List<Map<String, dynamic>>.from(accommodations.value);
+    list.removeWhere((item) => item['id'] == id);
+    accommodations.value = list;
+
+    final customList = List<Map<String, dynamic>>.from(customListings.value);
+    customList.removeWhere((item) => item['id'] == id);
+    customListings.value = customList;
+  }
+
+  static Future<bool> loginWithProvider(String provider) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return true;
+  }
+
+  static bool isFavorite(Map<String, dynamic> item) {
+    final itemId = item['id']?.toString() ?? item['title']?.toString() ?? '';
+    return favoriteItems.value.any((fav) => (fav['id']?.toString() ?? fav['title']?.toString()) == itemId);
+  }
+
+  static void toggleFavorite(Map<String, dynamic> item) {
+    final itemId = item['id']?.toString() ?? item['title']?.toString() ?? '';
+    final list = List<Map<String, dynamic>>.from(favoriteItems.value);
+    final existingIndex = list.indexWhere((fav) => (fav['id']?.toString() ?? fav['title']?.toString()) == itemId);
+
+    if (existingIndex >= 0) {
+      list.removeAt(existingIndex);
+    } else {
+      list.add(item);
     }
+
+    favoriteItems.value = list;
   }
 }

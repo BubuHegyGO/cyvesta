@@ -1,4 +1,4 @@
-package com.example.hegygo
+package com.hegygo.app
 
 import io.flutter.embedding.android.FlutterActivity
 

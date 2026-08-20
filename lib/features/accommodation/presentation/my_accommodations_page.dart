@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hegygo/features/accommodation/presentation/add_accommodation_page.dart';
-import 'package:hegygo/features/accommodation/presentation/edit_accommodation_page.dart';
+import 'package:cyvesta/features/accommodation/presentation/add_accommodation_page.dart';
+import 'package:cyvesta/features/accommodation/presentation/edit_accommodation_page.dart';
 
 class MyAccommodationsPage extends StatefulWidget {
   const MyAccommodationsPage({super.key});
@@ -10,24 +10,28 @@ class MyAccommodationsPage extends StatefulWidget {
 }
 
 class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
+  static const Color bgColor = Color(0xFF0A1220);
+  static const Color cardBg = Color(0xFF111E36);
+  static const Color accentCyan = Color(0xFF00C0D4);
+
   final List<Map<String, String>> _myAccommodations = [
     {
       'id': '1',
-      'title': 'SZARVAS vendégház',
-      'location': 'Mátra - Kékestető',
-      'price': '10.000 Ft / fő / éj',
-      'status': 'Aktív',
+      'title': 'Villa Coral Bay',
+      'location': 'Kyrenia - Esentepe',
+      'price': '€220 / night',
+      'status': 'Active',
       'imagePath': 'assets/images/szarvas.png',
-      'description': 'Kényelmes, fenyvesekkel körülvett hangulatos faház a Mátra szívében.',
+      'description': 'Exclusive modern 4-bedroom villa with private infinity pool and panoramic Mediterranean sea views.',
     },
     {
       'id': '2',
-      'title': 'Panoráma Apartman',
-      'location': 'Mátra - Mátraháza',
-      'price': '12.500 Ft / fő / éj',
-      'status': 'Elbírálás alatt',
+      'title': 'Blue Horizon Residence',
+      'location': 'Famagusta - Long Beach',
+      'price': '€110 / night',
+      'status': 'Pending Review',
       'imagePath': 'assets/images/panorama.png',
-      'description': 'Lélegzetelállító erdei és völgyi panorámával rendelkező modern, teljesen felszerelt apartman.',
+      'description': 'Contemporary condo steps away from the sandy shores of Long Beach with resort amenities.',
     },
   ];
 
@@ -43,21 +47,24 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D160E),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A1E),
+        backgroundColor: const Color(0xFF0E192D),
         elevation: 0,
         title: const Text(
-          'Saját Szállásaim',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'My Listings & Properties',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // ÚJ SZÁLLÁS HOZZÁADÁSA GOMB
+            // ADD NEW LISTING BUTTON
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -72,7 +79,7 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                 },
                 icon: const Icon(Icons.add_circle_outline, color: Colors.black),
                 label: const Text(
-                  'Új Szállás Feltöltése',
+                  'Post New Listing',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -80,7 +87,7 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8BC541),
+                  backgroundColor: accentCyan,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -92,7 +99,7 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Meglévő szálláshirdetéseid (kattints a szerkesztéshez):',
+                'Your active & pending listings (tap to edit):',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 13,
@@ -107,7 +114,7 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                 itemCount: _myAccommodations.length,
                 itemBuilder: (context, index) {
                   final item = _myAccommodations[index];
-                  final bool isActive = item['status'] == 'Aktív';
+                  final bool isActive = item['status'] == 'Active';
 
                   return GestureDetector(
                     onTap: () => _openEditPage(item),
@@ -115,10 +122,10 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                       margin: const EdgeInsets.only(bottom: 14),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A261C),
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isActive ? const Color(0xFF8BC541) : Colors.amber,
+                          color: isActive ? accentCyan : Colors.amber,
                           width: 1.2,
                         ),
                       ),
@@ -137,7 +144,7 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                                     width: 80,
                                     height: 80,
                                     color: Colors.black26,
-                                    child: const Icon(Icons.home, color: Color(0xFF8BC541)),
+                                    child: const Icon(Icons.villa_outlined, color: accentCyan),
                                   ),
                                 ),
                               ),
@@ -166,7 +173,7 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                                         Text(
                                           item['price']!,
                                           style: const TextStyle(
-                                            color: Color(0xFF8BC541),
+                                            color: accentCyan,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
@@ -174,16 +181,18 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: isActive ? const Color(0xFF8BC541).withValues(alpha: 0.2) : Colors.amber.withValues(alpha: 0.2),
+                                            color: isActive
+                                                ? accentCyan.withValues(alpha: 0.15)
+                                                : Colors.amber.withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(6),
                                             border: Border.all(
-                                              color: isActive ? const Color(0xFF8BC541) : Colors.amber,
+                                              color: isActive ? accentCyan : Colors.amber,
                                             ),
                                           ),
                                           child: Text(
                                             item['status']!,
                                             style: TextStyle(
-                                              color: isActive ? const Color(0xFF8BC541) : Colors.amber,
+                                              color: isActive ? accentCyan : Colors.amber,
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -202,11 +211,11 @@ class _MyAccommodationsPageState extends State<MyAccommodationsPage> {
                             children: [
                               TextButton.icon(
                                 onPressed: () => _openEditPage(item),
-                                icon: const Icon(Icons.edit, color: Color(0xFF8BC541), size: 18),
+                                icon: const Icon(Icons.edit, color: accentCyan, size: 18),
                                 label: const Text(
-                                  'Szerkesztés & Árváltoztatás',
+                                  'Edit & Update Pricing',
                                   style: TextStyle(
-                                    color: Color(0xFF8BC541),
+                                    color: accentCyan,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),

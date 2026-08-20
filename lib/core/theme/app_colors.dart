@@ -1,50 +1,58 @@
-// ======================================================
-// HegyGO
-// File: lib/core/theme/app_colors.dart
-// ======================================================
-
 import 'package:flutter/material.dart';
 
 class AppColors {
-  AppColors._();
+  // --- FŐ LAGÚNA ÉS MENTAZÖLD SZÍNEK ---
+  static const Color darkBg = Color(0xFF061822);
+  static const Color background = darkBg;
+  static const Color scaffoldBackground = darkBg;
 
-  // Brand
-  static const Color primary = Color(0xFF8BC541);
-  static const Color primaryDark = Color(0xFF6FA52E);
+  static const Color mintGreenBorder = Color(0xFF99FF99);
+  static const Color accent = mintGreenBorder;
+  static const Color secondary = mintGreenBorder;
 
-  // Background
-  static const Color background = Color(0xFF07130A);
-  static const Color surface = Color(0xFF102117);
+  static const Color turquoiseGlass = Color(0xCC14D1C4);
+  static const Color primary = Color(0xFF14D1C4);
+  static const Color cardBg = turquoiseGlass;
 
-  // Text
+  static const Color deepBlueIcon = Color(0xFF072A40);
+  static const Color textDark = Color(0xFF0F172A);
   static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFFBFC7BF);
+  static const Color textSecondary = Color(0xFF94A3B8);
 
-  // Icons
-  static const Color icon = Colors.white;
-  static const Color iconActive = primary;
+  static const Color sunnyGold = Color(0xFFFF9F1C);
+  static const Color modalBg = Color(0xFF0B2535);
+  static const Color white = Colors.white;
+  static const Color black = Colors.black;
 
-  // Notification badge
-  static const Color notification = primary;
+  // Üveghatású mentazöld kártya stílus
+  static BoxDecoration glassCardDecoration({double radius = 16}) {
+    return BoxDecoration(
+      color: turquoiseGlass,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: mintGreenBorder, width: 1.6),
+      boxShadow: [
+        BoxShadow(
+          color: mintGreenBorder.withValues(alpha: 0.25),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    );
+  }
 
-  // Glass
-  static const Color glass = Color.fromARGB(35, 255, 255, 255);
-  static const Color glassBorder = Color.fromARGB(45, 255, 255, 255);
-
-  // Card
-  static const Color card = Color(0xFF102117);
-
-  // Shadows
-  static const Color shadow = Color.fromARGB(60, 0, 0, 0);
-
-  // Gradient
-  static const LinearGradient backgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      Color.fromARGB(40, 0, 0, 0),
-      Color.fromARGB(150, 7, 19, 10),
-      Color(0xFF07130A),
-    ],
-  );
+  // Fő akciógomb stílus
+  static ButtonStyle primaryButtonStyle({double radius = 14}) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: sunnyGold,
+      foregroundColor: textDark,
+      elevation: 5,
+      side: const BorderSide(color: mintGreenBorder, width: 1.5),
+      shadowColor: sunnyGold.withValues(alpha: 0.4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
 }
+
+typedef CyvestaColors = AppColors;

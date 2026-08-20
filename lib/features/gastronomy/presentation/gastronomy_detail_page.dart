@@ -1,325 +1,243 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/localization/app_language.dart';
+import '../../../core/services/data_service.dart';
+import '../../../core/widgets/cyvesta_scaffold.dart';
 
-class GastronomyDetailPage extends StatefulWidget {
-  final Map<String, String> gastronomyData;
+class GastronomyDetailPage extends StatelessWidget {
+  final Map<String, dynamic> itemData;
 
-  const GastronomyDetailPage({super.key, required this.gastronomyData});
+  const GastronomyDetailPage({super.key, required this.itemData});
 
-  @override
-  State<GastronomyDetailPage> createState() => _GastronomyDetailPageState();
-}
+  static const Color darkBg = Color(0xFF061822);
+  static const Color mintGreenBorder = Color(0xFF99FF99);
+  static const Color turquoiseGlass = Color(0xCC14D1C4);
+  static const Color deepBlueIcon = Color(0xFF072A40);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color sunnyGold = Color(0xFFFF9F1C);
 
-class _GastronomyDetailPageState extends State<GastronomyDetailPage> {
-  final List<Map<String, String>> _menuItems = [
-    {
-      'title': 'HegyGO Kemencés Tál',
-      'price': '4.800 Ft',
-      'desc': 'Sült csülök, töltött dagadó, párolt káposzta, tepsis burgonya',
-    },
-    {
-      'title': 'Bükki Vadgulyás Házi Csipetkével',
-      'price': '3.200 Ft',
-      'desc': 'Erdei gombákkal, friss kenyérrel és házi savanyúsággal',
-    },
-    {
-      'title': 'Kézműves Erdei Gyümölcsös Pite',
-      'price': '1.800 Ft',
-      'desc': 'Helyi erdei gyümölcsökből, vanília fagylalttal',
-    },
-  ];
+  Future<void> _launchWhatsApp(String phone, String title) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final msg = Uri.encodeComponent("Hello! I would like to reserve a table at $title via CYVESTA App.");
+    final uri = Uri.parse("https://wa.me/$cleanPhone?text=$msg");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _makePhoneCall(String phone) async {
+    final uri = Uri.parse("tel:$phone");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.gastronomyData;
+    final title = itemData['title']?.toString() ?? 'Restaurant';
+    final location = itemData['location']?.toString() ?? 'Cyprus';
+    final rating = itemData['rating']?.toString() ?? '4.95';
+    final imagePath = itemData['imagePath']?.toString() ?? 'assets/images/etterem.png';
+    final desc = itemData['description']?.toString() ?? 'Kiváló minőségű ételek és hangulatos atmoszféra.';
+    final hours = itemData['openingHours']?.toString() ?? '11:00 - 23:00';
+    final phone = itemData['phone']?.toString() ?? '+35799112233';
+    final tags = (itemData['tags'] as List<String>?) ?? ['Specialty Food', 'Outdoor Seating', 'Wi-Fi'];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D160E),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 260,
-            pinned: true,
-            backgroundColor: const Color(0xFF1E3A1E),
-            iconTheme: const IconThemeData(color: Colors.white),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    item['imagePath'] ?? 'assets/images/csarda.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Image.asset(
-                      'assets/images/szarvas.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: const Color(0xFF1A261C),
-                        child: const Icon(Icons.restaurant, color: Color(0xFF8BC541), size: 80),
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLanguage.currentLocale,
+      builder: (context, locale, child) {
+        return CyvestaScaffold(
+          body: Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    expandedHeight: 250,
+                    pinned: true,
+                    backgroundColor: darkBg,
+                    leading: CircleAvatar(
+                      backgroundColor: deepBlueIcon.withValues(alpha: 0.8),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: mintGreenBorder, size: 18),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    actions: [
+                      ValueListenableBuilder<List<Map<String, dynamic>>>(
+                        valueListenable: DataService.favoriteItems,
+                        builder: (context, favs, child) {
+                          final isFav = DataService.isFavorite(itemData);
+                          return CircleAvatar(
+                            backgroundColor: deepBlueIcon.withValues(alpha: 0.8),
+                            child: IconButton(
+                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.redAccent : Colors.white, size: 20),
+                              onPressed: () => DataService.toggleFavorite(itemData),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(color: deepBlueIcon),
                       ),
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.4),
-                          Colors.transparent,
-                          const Color(0xFF0D160E),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Cím kártya
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: turquoiseGlass,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder, width: 1.4),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(title, style: const TextStyle(color: textDark, fontSize: 16.5, fontWeight: FontWeight.w900)),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: deepBlueIcon, borderRadius: BorderRadius.circular(8)),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.star, color: sunnyGold, size: 14),
+                                          const SizedBox(width: 4),
+                                          Text(rating, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on_outlined, color: deepBlueIcon, size: 16),
+                                    const SizedBox(width: 4),
+                                    Expanded(child: Text(location, style: TextStyle(color: textDark.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w700))),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Kapcsolat gombok (WhatsApp Asztalfoglalás + Közvetlen Hívás)
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF25D366),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  icon: const Icon(Icons.chat_rounded, size: 18),
+                                  label: Text(AppLanguage.tr('table_reservation'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                                  onPressed: () => _launchWhatsApp(phone, title),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: deepBlueIcon,
+                                    foregroundColor: mintGreenBorder,
+                                    side: const BorderSide(color: mintGreenBorder, width: 1.2),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  icon: const Icon(Icons.phone_in_talk_rounded, size: 18),
+                                  label: Text(AppLanguage.tr('call_restaurant'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                                  onPressed: () => _makePhoneCall(phone),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Nyitvatartás doboz
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: deepBlueIcon,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder.withValues(alpha: 0.6)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time_filled_rounded, color: sunnyGold, size: 22),
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(AppLanguage.tr('opening_hours'), style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                                    Text(hours, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Leírás & Címkék
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: deepBlueIcon,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: mintGreenBorder.withValues(alpha: 0.6)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(AppLanguage.tr('menu_preview'), style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 8),
+                                Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: tags.map((t) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF093753),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: mintGreenBorder.withValues(alpha: 0.4)),
+                                    ),
+                                    child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                                  )).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
                   ),
-                  if (item['isVerified'] == 'true')
-                    Positioned(
-                      bottom: 16,
-                      left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF07130A).withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF8BC541)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.verified, color: Color(0xFF8BC541), size: 16),
-                            SizedBox(width: 6),
-                            Text(
-                              'ELLENŐRZÖTT PARTNER',
-                              style: TextStyle(
-                                color: Color(0xFF8BC541),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                 ],
               ),
-            ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item['title'] ?? 'Gasztro Helyszín',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFFFC107)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              item['rating'] ?? '5.0',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, color: Color(0xFF8BC541), size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['location'] ?? 'Hegyvidék',
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'A vendéglőről',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item['description'] ?? 'Autentikus hegyvidéki ízek, friss helyi alapanyagok és felejthetetlen hangulat.',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.87), fontSize: 14, height: 1.5),
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A261C),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF8BC541).withValues(alpha: 0.4)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.access_time_filled, color: Color(0xFF8BC541)),
-                            SizedBox(width: 8),
-                            Text(
-                              'Nyitvatartás & Helyszín',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(color: Colors.white24, height: 20),
-                        _buildInfoRow(Icons.schedule, 'Hétfő - Csütörtök:', '11:30 - 21:00'),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(Icons.schedule, 'Péntek - Vasárnap:', '11:00 - 23:00'),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(Icons.map_outlined, 'Streetmap / Cím:', item['location'] ?? 'Fő út 12.'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  const Text(
-                    'Kiemelt Étlap & Kínálat 🍽️',
-                    style: TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Column(
-                    children: _menuItems.map((dish) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.black26,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.restaurant_menu, color: Color(0xFFFFC107), size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        dish['title']!,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Text(
-                                        dish['price']!,
-                                        style: const TextStyle(
-                                          color: Color(0xFF8BC541),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    dish['desc']!,
-                                    style: const TextStyle(color: Colors.white60, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // --- ÚJ: SÁRGA KIEMELT WEBOLDAL MEGTEKINTÉSE GOMB ---
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Weboldal megnyitási logika
-                      },
-                      icon: const Icon(Icons.language, color: Colors.black, size: 22),
-                      label: const Text(
-                        'Weboldal megtekintése',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFC107), // Kért sárga kiemelés
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70, size: 18),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white60, fontSize: 13),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
