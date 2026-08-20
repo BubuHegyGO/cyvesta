@@ -1,4 +1,4 @@
-package com.hegygo.app
+package com.cyvesta.app
 
 import io.flutter.embedding.android.FlutterActivity
 
