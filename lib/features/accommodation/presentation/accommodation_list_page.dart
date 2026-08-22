@@ -37,7 +37,6 @@ class _AccommodationListPageState extends State<AccommodationListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // FEJLÉC VISSZA GOMBBAL
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   child: Row(
@@ -60,8 +59,6 @@ class _AccommodationListPageState extends State<AccommodationListPage> {
                     ],
                   ),
                 ),
-
-                // KERESŐ MEZŐ
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: TextField(
@@ -80,29 +77,23 @@ class _AccommodationListPageState extends State<AccommodationListPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // SZŰRT LISTA
                 Expanded(
                   child: ValueListenableBuilder<List<Map<String, dynamic>>>(
                     valueListenable: DataService.accommodations,
                     builder: (context, allItems, child) {
                       final items = allItems.where((item) {
                         if (item['status'] == 'rejected') return false;
-                        if (item['category'] != 'accommodation') return false;
+                        
+                        // Kategória és szűrés igazítása
+                        final cat = item['category']?.toString().toLowerCase() ?? '';
+                        if (cat != 'accommodation' && cat != 'rent' && cat != 'sale') return false;
 
-                        final badge = item['badge']?.toString().toUpperCase() ?? '';
-                        final price = item['price']?.toString().toLowerCase() ?? '';
-
-                        // Kiadó vs Eladó szűrés
                         if (widget.filterType == 'sale') {
-                          final isSale = badge.contains('SALE') || badge.contains('ELADÓ') || (!price.contains('night') && !price.contains('éj') && price.contains('€'));
-                          if (!isSale) return false;
+                          if (cat != 'sale' && !item['price'].toString().contains('€320')) return false;
                         } else {
-                          final isSale = badge.contains('SALE') || badge.contains('ELADÓ');
-                          if (isSale) return false;
+                          if (cat == 'sale') return false;
                         }
 
-                        // Szöveges keresés
                         if (_searchQuery.isNotEmpty) {
                           final title = item['title']?.toString().toLowerCase() ?? '';
                           final loc = item['location']?.toString().toLowerCase() ?? '';
@@ -174,25 +165,6 @@ class _AccommodationListPageState extends State<AccommodationListPage> {
                                                   Text(rating, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold)),
                                                 ],
                                               ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            ValueListenableBuilder<List<Map<String, dynamic>>>(
-                                              valueListenable: DataService.favoriteItems,
-                                              builder: (context, favs, child) {
-                                                final isFav = DataService.isFavorite(item);
-                                                return GestureDetector(
-                                                  onTap: () => DataService.toggleFavorite(item),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.all(6),
-                                                    decoration: const BoxDecoration(color: deepBlueIcon, shape: BoxShape.circle),
-                                                    child: Icon(
-                                                      isFav ? Icons.favorite : Icons.favorite_border,
-                                                      color: isFav ? Colors.redAccent : Colors.white,
-                                                      size: 16,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
                                             ),
                                           ],
                                         ),

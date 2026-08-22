@@ -1,250 +1,295 @@
 import 'package:flutter/material.dart';
-import '../../core/localization/app_language.dart';
-import '../../core/services/auth_state.dart';
-import '../../core/widgets/cyvesta_scaffold.dart';
-import '../accommodation/presentation/steps/add_listing_wizard_page.dart';
-import '../faq/faq_page.dart';
-import 'admin_dashboard_page.dart';
-import 'edit_profile_page.dart';
-import 'host_packages_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
-  static const Color mintGreenBorder = Color(0xFF99FF99);
-  static const Color turquoiseGlass = Color(0xCC14D1C4);
-  static const Color deepBlueIcon = Color(0xFF072A40);
-  static const Color textDark = Color(0xFF0F172A);
-  static const Color sunnyGold = Color(0xFFFF9F1C);
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
 
-  void _showLanguageSelector(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF072A40),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppLanguage.tr('lang_title'), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 14),
-            _buildLangOption('🇭🇺 Magyar', 'hu', ctx),
-            _buildLangOption('🇬🇧 English', 'en', ctx),
-            _buildLangOption('🇬🇷 Ελληνικά', 'el', ctx),
-            _buildLangOption('🇩🇪 Deutsch', 'de', ctx),
-            _buildLangOption('🇷🇺 Русский', 'ru', ctx),
-          ],
-        ),
-      ),
-    );
+class _ProfilePageState extends State<ProfilePage> {
+  final _nameController = TextEditingController();
+  final _businessNameController = TextEditingController();
+  final _taxNumberController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
+  bool _acceptedTerms = false; // Új: ÁSZF & GDPR elfogadás jelölőnégyzet
+  bool _isLoading = false;
+  String _errorMessage = '';
+
+  Future<void> _registerPartner() async {
+    // Ellenőrzés, hogy minden mező ki van-e töltve
+    if (_nameController.text.trim().isEmpty ||
+        _businessNameController.text.trim().isEmpty ||
+        _taxNumberController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty ||
+        _phoneController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Minden mező kitöltése kötelező! ⚠️';
+      });
+      return;
+    }
+
+    // Ellenőrzés, hogy elfogadta-e az ÁSZF-et és a GDPR-t
+    if (!_acceptedTerms) {
+      setState(() {
+        _errorMessage = 'Az ÁSZF és a GDPR elfogadása kötelező a regisztrációhoz! ⚠️';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+
+      await FirebaseFirestore.instance.collection('partners').doc(user?.uid).set({
+        'name': _nameController.text.trim(),
+        'businessName': _businessNameController.text.trim(),
+        'taxNumber': _taxNumberController.text.trim(),
+        'address': _addressController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'emailVerified': false,
+        'acceptedTerms': true,
+        'createdAt': Timestamp.now(),
+        'role': 'partner',
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sikeres regisztráció! Kérjük, ellenőrizd az e-mail fiókodat a megerősítéshez.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message ?? 'Hiba történt a regisztráció során.';
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Hiba történt: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  Widget _buildLangOption(String label, String code, BuildContext ctx) {
-    return ListTile(
-      title: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-      trailing: AppLanguage.currentLocale.value == code ? const Icon(Icons.check_circle, color: mintGreenBorder) : null,
-      onTap: () {
-        AppLanguage.setLanguage(code);
-        Navigator.pop(ctx);
-      },
-    );
-  }
-
-  // Hirdetésfeladás gomb kezelése (Partner ellenőrzéssel & Stripe-pal)
-  void _handleHostRegistrationTap(BuildContext context) {
-    if (AuthState.isPartner.value) {
-      // Ha már partner, közvetlenül az 5 lépéses varázsló indul
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddListingWizardPage()));
-    } else {
-      // Ha még nem partner, először a Stripe fizetési csomagok oldal ugrik fel
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const HostPackagesPage()));
+  Future<void> _signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sikeres kijelentkezés.')),
+        );
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('SignOut error: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: AppLanguage.currentLocale,
-      builder: (context, locale, child) {
-        final isEn = locale != 'hu';
+    User? currentUser;
+    try {
+      currentUser = FirebaseAuth.instance.currentUser;
+    } catch (e) {
+      currentUser = null;
+    }
 
-        return CyvestaScaffold(
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Partner Profil & Regisztráció'),
+        backgroundColor: const Color(0xFF061822),
+        actions: [
+          if (currentUser != null)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Kijelentkezés',
+              onPressed: _signOut,
+            ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: currentUser != null
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // FEJLÉC
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLanguage.tr('profile_title'),
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.language_rounded, color: mintGreenBorder, size: 22),
-                        onPressed: () => _showLanguageSelector(context),
-                      ),
-                    ],
+                  const SizedBox(height: 40),
+                  const Icon(Icons.check_circle, size: 80, color: Colors.teal),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Bejelentkezve:\n${currentUser.email}',
+                    style: const TextStyle(fontSize: 18),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
-
-                  // FELHASZNÁLÓI KÁRTYA
-                  ValueListenableBuilder<bool>(
-                    valueListenable: AuthState.isLoggedIn,
-                    builder: (context, loggedIn, child) {
-                      final name = loggedIn ? AuthState.userName.value : 'CYVESTA Partner & Admin';
-                      final email = loggedIn ? AuthState.userEmail.value : 'admin@cyvesta.com';
-
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: turquoiseGlass,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: mintGreenBorder, width: 1.4),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: const BoxDecoration(
-                                color: deepBlueIcon,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.person_rounded, color: sunnyGold, size: 30),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    style: const TextStyle(color: textDark, fontSize: 15, fontWeight: FontWeight.w900),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    email,
-                                    style: TextStyle(color: textDark.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: deepBlueIcon,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      AppLanguage.tr('admin_badge'),
-                                      style: const TextStyle(color: mintGreenBorder, fontSize: 9.5, fontWeight: FontWeight.w900),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Kijelentkezés'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Szállásadó / Partner Adatok (Kötelező)',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Kapcsolattartó neve *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _businessNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Vállalkozás / Szálláshely neve *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _taxNumberController,
+                    decoration: const InputDecoration(
+                      labelText: 'Hivatalos cégadatok / Regisztrációs szám / Adószám *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Cím (Település, utca, házszám) *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Telefonszám *',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'E-mail cím (validáláshoz) *',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Jelszó *',
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
                   ),
                   const SizedBox(height: 16),
 
-                  // 1. GYAKORI KÉRDÉSEK & HOGYAN MŰKÖDIK?
-                  _buildMenuCard(
-                    icon: Icons.help_outline_rounded,
-                    iconColor: sunnyGold,
-                    title: isEn ? 'How CYVESTA Works (FAQ) 💡' : 'Gyakori Kérdések & Működés 💡',
-                    subtitle: isEn ? 'Why CYVESTA is better than regular websites & portals' : 'Miben különbözik egy átlagos weboldaltól és portáltól?',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage())),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 2. ADMIN MODERÁCIÓS KÖZPONT
-                  _buildMenuCard(
-                    icon: Icons.shield_rounded,
-                    iconColor: mintGreenBorder,
-                    title: AppLanguage.tr('admin_center'),
-                    subtitle: AppLanguage.tr('admin_center_desc'),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardPage())),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 3. HIRDETÉSFELADÁS & PARTNERREGISZTRÁCIÓ (STRIPE + 5 LÉPÉSES VARÁZSLÓ)
-                  _buildMenuCard(
-                    icon: Icons.add_business_rounded,
-                    iconColor: Colors.lightBlueAccent,
-                    title: AppLanguage.tr('host_reg'),
-                    subtitle: AppLanguage.tr('host_reg_desc'),
-                    onTap: () => _handleHostRegistrationTap(context),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 4. HIRDETŐI TAGSÁGOK & STRIPE CSOMAGOK
-                  _buildMenuCard(
-                    icon: Icons.diamond_rounded,
-                    iconColor: sunnyGold,
-                    title: AppLanguage.tr('host_packages'),
-                    subtitle: AppLanguage.tr('host_packages_desc'),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HostPackagesPage())),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 5. PROFIL SZERKESZTÉSE
-                  _buildMenuCard(
-                    icon: Icons.edit_note_rounded,
-                    iconColor: Colors.tealAccent,
-                    title: AppLanguage.tr('edit_profile'),
-                    subtitle: AppLanguage.tr('edit_profile_desc'),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage())),
+                  // ÁSZF és GDPR Elfodagás Checkbox kattintható linkkel
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _acceptedTerms,
+                        activeColor: Colors.amber,
+                        checkColor: const Color(0xFF0F172A),
+                        onChanged: (val) {
+                          setState(() {
+                            _acceptedTerms = val ?? false;
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final url = Uri.parse('https://docs.google.com/document/d/1qE_7YtmwU7baCj8XB7GAzaPhxzS2yGs8yep1synu7zA/edit?usp=drive_web');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: const Text(
+                            'Elfogadom az ÁSZF-et és a ciprusi GDPR adatvédelmi irányelveket. *',
+                            style: TextStyle(
+                              color: Color(0xFF99FF99),
+                              fontSize: 12,
+                              height: 1.3,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
+                  
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Text(
+                        _errorMessage,
+                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          onPressed: _registerPartner,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text(
+                            'Partner Regisztráció & Validáló E-mail küldése',
+                            style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                 ],
               ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMenuCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF093753),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: mintGreenBorder.withValues(alpha: 0.35)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Container(
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-            color: deepBlueIcon,
-            shape: BoxShape.circle,
-            border: Border.all(color: iconColor, width: 1.2),
-          ),
-          child: Icon(icon, color: iconColor, size: 20),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: mintGreenBorder, size: 16),
-        onTap: onTap,
       ),
     );
   }

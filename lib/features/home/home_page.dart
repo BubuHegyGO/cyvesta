@@ -8,6 +8,7 @@ import '../../core/services/stripe_service.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
 import '../accommodation/presentation/accommodation_list_page.dart';
+import '../admin/admin_moderation_page.dart'; // Új: Admin moderációs felület importálása
 import '../experiences/experiences_page.dart';
 import '../experiences/presentation/experience_detail_page.dart';
 import '../faq/faq_page.dart';
@@ -74,6 +75,55 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  // Admin belépés ellenőrző ablak (Bubu / 1234)
+  void _showAdminLoginDialog(BuildContext context) {
+    final passwordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF072A40),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: mintGreenBorder, width: 1.4),
+        ),
+        title: const Text('Admin Belépés (Bubu) 🛡️', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: passwordController,
+          obscureText: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Add meg a jelszót (1234)',
+            hintStyle: const TextStyle(color: Colors.white54),
+            filled: true,
+            fillColor: const Color(0xFF093753),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: mintGreenBorder)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Mégse', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: sunnyGold, foregroundColor: textDark),
+            onPressed: () {
+              if (passwordController.text.trim() == '1234') {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminModerationPage()));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Hibás admin jelszó! ⚠️', style: TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
+                );
+              }
+            },
+            child: const Text('Belépés', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleSocialAuth({
     required BuildContext context,
     required BuildContext modalContext,
@@ -114,7 +164,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // BEJELENTKEZÉS & REGISZTRÁCIÓ MODAL (Kattintható ÁSZF & GDPR Linkkel)
   void _showAuthModal(BuildContext context) {
     bool isRegisterMode = false;
     int selectedRole = 0; 
@@ -123,6 +172,9 @@ class _HomePageState extends State<HomePage> {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final nameController = TextEditingController();
+    final taxController = TextEditingController();
+    final addressController = TextEditingController();
+    final phoneController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -221,8 +273,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   child: Column(
                                     children: [
-                                      Text('Vendég', style: TextStyle(color: selectedRole == 0 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      Text('INGYENES', style: TextStyle(color: selectedRole == 0 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
+                                      Text(AppLanguage.tr('role_guest'), style: TextStyle(color: selectedRole == 0 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                      Text(AppLanguage.tr('role_free'), style: TextStyle(color: selectedRole == 0 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
                                     ],
                                   ),
                                 ),
@@ -241,8 +293,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   child: Column(
                                     children: [
-                                      Text('Éves Partner ⭐', style: TextStyle(color: selectedRole == 1 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      Text('€240 (€20/hó)', style: TextStyle(color: selectedRole == 1 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
+                                      Text(AppLanguage.tr('role_annual'), style: TextStyle(color: selectedRole == 1 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                      Text(AppLanguage.tr('role_annual_price'), style: TextStyle(color: selectedRole == 1 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
                                     ],
                                   ),
                                 ),
@@ -261,8 +313,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   child: Column(
                                     children: [
-                                      Text('Féléves Partner', style: TextStyle(color: selectedRole == 2 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      Text('€180 (6 hó)', style: TextStyle(color: selectedRole == 2 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
+                                      Text(AppLanguage.tr('role_half_year'), style: TextStyle(color: selectedRole == 2 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                      Text(AppLanguage.tr('role_half_year_price'), style: TextStyle(color: selectedRole == 2 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
                                     ],
                                   ),
                                 ),
@@ -275,15 +327,36 @@ class _HomePageState extends State<HomePage> {
                         TextField(
                           controller: nameController,
                           style: const TextStyle(color: Colors.white, fontSize: 13),
-                          decoration: _authInputDec(selectedRole == 0 ? 'Teljes név' : 'Vállalkozás / Szállásadó Neve', Icons.person_outline),
+                          decoration: _authInputDec(selectedRole == 0 ? '${AppLanguage.tr('auth_name_hint')} *' : '${AppLanguage.tr('auth_business_name_hint')} *', Icons.person_outline),
                         ),
                         const SizedBox(height: 10),
+
+                        if (selectedRole != 0) ...[
+                          TextField(
+                            controller: taxController,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _authInputDec('${AppLanguage.tr('auth_tax_hint')} *', Icons.badge_outlined),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: addressController,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _authInputDec('${AppLanguage.tr('auth_address_hint')} *', Icons.location_on_outlined),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: phoneController,
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: _authInputDec('${AppLanguage.tr('auth_phone_hint')} *', Icons.phone_outlined),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                       ],
 
                       TextField(
                         controller: emailController,
                         style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _authInputDec(AppLanguage.tr('auth_email_hint'), Icons.email_outlined),
+                        decoration: _authInputDec('${AppLanguage.tr('auth_email_hint')} *', Icons.email_outlined),
                       ),
                       const SizedBox(height: 10),
 
@@ -291,11 +364,10 @@ class _HomePageState extends State<HomePage> {
                         controller: passwordController,
                         obscureText: true,
                         style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _authInputDec(AppLanguage.tr('auth_password_hint'), Icons.lock_outline),
+                        decoration: _authInputDec('${AppLanguage.tr('auth_password_hint')} *', Icons.lock_outline),
                       ),
                       const SizedBox(height: 10),
 
-                      // KÖTELEZŐ ÁSZF ÉS GDPR JELÖLŐNÉGYZET KATTINTHATÓ LINKKEL
                       if (isRegisterMode) ...[
                         Row(
                           children: [
@@ -315,9 +387,9 @@ class _HomePageState extends State<HomePage> {
                                     await launchUrl(url, mode: LaunchMode.externalApplication);
                                   }
                                 },
-                                child: const Text(
-                                  'Elfogadom az ÁSZF-et és a ciprusi GDPR adatvédelmi irányelveket (Kattints ide)[cite: 1].',
-                                  style: TextStyle(
+                                child: Text(
+                                  '${AppLanguage.tr('terms_acceptance')} *',
+                                  style: const TextStyle(
                                     color: mintGreenBorder, 
                                     fontSize: 11, 
                                     height: 1.3,
@@ -341,56 +413,91 @@ class _HomePageState extends State<HomePage> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           onPressed: () async {
-                            if (isRegisterMode && !acceptedTerms) {
+                            final email = emailController.text.trim();
+                            final password = passwordController.text.trim();
+                            final name = nameController.text.trim();
+
+                            if (email.isEmpty || password.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('A regisztrációhoz el kell fogadni az ÁSZF-et és az Adatvédelmi nyilatkozatot! ⚠️')),
+                                const SnackBar(content: Text('Az e-mail és a jelszó megadása kötelező! ⚠️')),
                               );
                               return;
                             }
 
-                            final email = emailController.text.trim();
-                            if (email.isNotEmpty) {
-                              final name = nameController.text.trim().isNotEmpty ? nameController.text.trim() : email.split('@').first;
+                            if (isRegisterMode) {
+                              if (!acceptedTerms) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('A regisztrációhoz el kell fogadni az ÁSZF-et és az Adatvédelmi nyilatkozatot! ⚠️')),
+                                );
+                                return;
+                              }
 
-                              if (isRegisterMode && selectedRole != 0) {
+                              if (selectedRole != 0) {
+                                if (taxController.text.trim().isEmpty ||
+                                    addressController.text.trim().isEmpty ||
+                                    phoneController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Minden partner adat kitöltése kötelező! ⚠️')),
+                                  );
+                                  return;
+                                }
+
                                 final planName = selectedRole == 1 ? 'Éves Partner Tagság' : 'Féléves Partner Tagság';
                                 final amount = selectedRole == 1 ? '240' : '180';
 
-                                final success = await StripeService.makePayment(
+                                final successPayment = await StripeService.makePayment(
                                   context: context,
                                   amount: amount,
                                   currency: 'EUR',
                                   planName: planName,
                                 );
 
-                                if (success) {
-                                  AuthState.login(
-                                    name: name,
-                                    email: email,
-                                    asPartner: true,
-                                  );
-                                  if (ctx.mounted) Navigator.pop(ctx);
-                                  if (context.mounted) {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HostRegistrationPage()));
-                                  }
+                                if (!successPayment) return;
+                              }
+
+                              final successReg = await AuthState.registerWithEmail(
+                                email: email,
+                                password: password,
+                                name: name.isNotEmpty ? name : email.split('@').first,
+                                asPartner: selectedRole != 0,
+                              );
+
+                              if (successReg) {
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (selectedRole != 0 && context.mounted) {
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const HostRegistrationPage()));
                                 }
                               } else {
-                                AuthState.login(
-                                  name: name,
-                                  email: email,
-                                  asPartner: false,
-                                );
-                                Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Hiba történt a regisztráció során! Ellenőrizze az adatokat.')),
+                                  );
+                                }
+                              }
+                            } else {
+                              final successLogin = await AuthState.loginWithEmail(
+                                email: email,
+                                password: password,
+                              );
+
+                              if (successLogin) {
+                                if (ctx.mounted) Navigator.pop(ctx);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Hibás e-mail vagy jelszó!')),
+                                  );
+                                }
                               }
                             }
                           },
                           child: Text(
                             isRegisterMode
                                 ? (selectedRole == 1
-                                    ? 'Stripe Fizetés & Regisztráció (€240/év)'
+                                    ? AppLanguage.tr('btn_stripe_annual')
                                     : (selectedRole == 2
-                                        ? 'Stripe Fizetés & Regisztráció (€180/6 hó)'
-                                        : 'Ingyenes Vendég Regisztráció'))
+                                        ? AppLanguage.tr('btn_stripe_half')
+                                        : AppLanguage.tr('btn_guest_reg')))
                                 : AppLanguage.tr('auth_login_btn'),
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
                           ),
@@ -754,9 +861,13 @@ class _HomePageState extends State<HomePage> {
                       ),
                       Row(
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.info_outline_rounded, color: sunnyGold, size: 23),
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage())),
+                          // Info ikon hosszú lenyomással az Admin belépéshez (Bubu / 1234)
+                          GestureDetector(
+                            onLongPress: () => _showAdminLoginDialog(context),
+                            child: IconButton(
+                              icon: const Icon(Icons.info_outline_rounded, color: sunnyGold, size: 23),
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage())),
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.language_rounded, color: mintGreenBorder, size: 23),
@@ -885,6 +996,27 @@ class _HomePageState extends State<HomePage> {
                                               fit: BoxFit.cover,
                                               errorBuilder: (c, e, s) => Container(height: 210, color: deepBlueIcon, child: const Icon(Icons.villa_rounded, size: 60, color: mintGreenBorder)),
                                             ),
+                                            
+                                            Positioned(
+                                              top: 10,
+                                              right: 10,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.yellow,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  AppLanguage.tr('featured_badge'),
+                                                  style: const TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 10,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
                                             Positioned(
                                               top: 10,
                                               left: 10,

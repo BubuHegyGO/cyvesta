@@ -1,142 +1,87 @@
 import 'package:flutter/material.dart';
 
 class DataService {
-  static final ValueNotifier<List<Map<String, dynamic>>> favoriteItems = ValueNotifier<List<Map<String, dynamic>>>([]);
-
-  static final ValueNotifier<List<Map<String, dynamic>>> customListings = ValueNotifier<List<Map<String, dynamic>>>([]);
-
   static final ValueNotifier<List<Map<String, dynamic>>> accommodations = ValueNotifier<List<Map<String, dynamic>>>([
     {
-      'id': 'acc_1',
-      'title': 'VILLA CORAL BAY LUXURY 🏖️',
-      'category': 'accommodation',
-      'location': 'Coral Bay, Paphos',
-      'price': '€240 / night',
+      'title': 'Luxury Paphos Villa',
+      'location': 'Paphos, Cyprus',
+      'price': '€150 / éj',
       'rating': '4.98',
-      'badge': 'PREMIUM VILLA',
-      'status': 'approved',
       'imagePath': 'assets/images/szarvas.png',
-      'phone': '+35799123456',
-      'whatsapp': '+35799123456',
-      'ical_url': '',
-      'description': 'Exkluzív tengerparti villa privát medencével, panorámás kilátással és 4 tágas hálószobával.',
-    },
-    {
-      'id': 'acc_2',
-      'title': 'KYRENIA PANORAMA APARTMENT 🏰',
       'category': 'accommodation',
-      'location': 'Kyrenia Old Town & Castle',
-      'price': '€185,000',
-      'rating': '4.95',
-      'badge': 'FOR SALE',
       'status': 'approved',
+    },
+    {
+      'title': 'Coral Bay Beach Apartment',
+      'location': 'Coral Bay, Paphos',
+      'price': '€95 / éj',
+      'rating': '4.90',
       'imagePath': 'assets/images/szarvas.png',
-      'phone': '+35799654321',
-      'whatsapp': '+35799654321',
-      'ical_url': '',
-      'description': 'Befektetésre kiváló 2 hálószobás dizájn lakás hegyi és tengeri panorámával.',
-    },
-    {
-      'id': 'acc_3',
-      'title': 'CASTLE VIEW STEAKHOUSE 🥩',
-      'category': 'gastronomy',
-      'location': 'Kyrenia Castle Promenade',
-      'price': '€32 / person',
-      'rating': '4.97',
-      'badge': 'PREMIUM STEAK',
+      'category': 'accommodation',
       'status': 'approved',
-      'imagePath': 'assets/images/etterem.png',
-      'phone': '+35799112233',
-      'whatsapp': '+35799112233',
-      'ical_url': '',
-      'description': 'Prémium tengerparti grillétterem és steakhouse lélegzetelállító kilátással.',
     },
     {
-      'id': 'acc_4',
-      'title': 'THE PALM ARTISAN BAKERY 🥐',
-      'category': 'gastronomy',
-      'location': 'Coral Bay Beachfront, Paphos',
-      'price': '€4.50-tól',
+      'title': 'Modern Sea View Villa For Sale',
+      'location': 'Paphos, Chloraka',
+      'price': '€320,000',
       'rating': '4.95',
-      'badge': 'COFFEE & BAKERY',
+      'imagePath': 'assets/images/szarvas.png',
+      'category': 'sale',
       'status': 'approved',
-      'imagePath': 'assets/images/cukraszda.png',
-      'phone': '+35799445566',
-      'whatsapp': '+35799445566',
-      'ical_url': '',
-      'description': 'Kézműves pékáruk, frissen sült vajas croissant-ok és specialty kávék.',
-    },
-    {
-      'id': 'acc_5',
-      'title': 'KYRENIA HARBOUR BREEZE 🐟',
-      'category': 'gastronomy',
-      'location': 'Kyrenia Old Harbour',
-      'price': '€24 / person',
-      'rating': '4.93',
-      'badge': 'SEAFOOD & MEZE',
-      'status': 'approved',
-      'imagePath': 'assets/images/csarda.png',
-      'phone': '+35799778899',
-      'whatsapp': '+35799778899',
-      'ical_url': '',
-      'description': 'Mediterrán kikötői taverna autentikus friss halételekkel és meze tálakkal.',
     },
   ]);
 
-  static void addListing(Map<String, dynamic> item) {
-    customListings.value = [item, ...customListings.value];
-    accommodations.value = [item, ...accommodations.value];
-  }
-
-  static void approveAccommodation(String id) {
-    final list = List<Map<String, dynamic>>.from(accommodations.value);
-    final index = list.indexWhere((item) => item['id'] == id);
-    if (index >= 0) {
-      list[index]['status'] = 'approved';
-      accommodations.value = list;
-    }
-  }
-
-  static void rejectAccommodation(String id) {
-    final list = List<Map<String, dynamic>>.from(accommodations.value);
-    final index = list.indexWhere((item) => item['id'] == id);
-    if (index >= 0) {
-      list[index]['status'] = 'rejected';
-      accommodations.value = list;
-    }
-  }
-
-  static void deleteListing(String id) {
-    final list = List<Map<String, dynamic>>.from(accommodations.value);
-    list.removeWhere((item) => item['id'] == id);
-    accommodations.value = list;
-
-    final customList = List<Map<String, dynamic>>.from(customListings.value);
-    customList.removeWhere((item) => item['id'] == id);
-    customListings.value = customList;
-  }
-
-  static Future<bool> loginWithProvider(String provider) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    return true;
-  }
+  static final ValueNotifier<List<Map<String, dynamic>>> favoriteItems = ValueNotifier<List<Map<String, dynamic>>>([]);
 
   static bool isFavorite(Map<String, dynamic> item) {
-    final itemId = item['id']?.toString() ?? item['title']?.toString() ?? '';
-    return favoriteItems.value.any((fav) => (fav['id']?.toString() ?? fav['title']?.toString()) == itemId);
+    return favoriteItems.value.any((fav) => fav['title'] == item['title']);
   }
 
   static void toggleFavorite(Map<String, dynamic> item) {
-    final itemId = item['id']?.toString() ?? item['title']?.toString() ?? '';
-    final list = List<Map<String, dynamic>>.from(favoriteItems.value);
-    final existingIndex = list.indexWhere((fav) => (fav['id']?.toString() ?? fav['title']?.toString()) == itemId);
-
-    if (existingIndex >= 0) {
-      list.removeAt(existingIndex);
+    final currentList = List<Map<String, dynamic>>.from(favoriteItems.value);
+    if (isFavorite(item)) {
+      currentList.removeWhere((fav) => fav['title'] == item['title']);
     } else {
-      list.add(item);
+      currentList.add(item);
     }
+    favoriteItems.value = currentList;
+  }
 
-    favoriteItems.value = list;
+  static void addAccommodation(Map<String, dynamic> newAccommodation) {
+    final currentList = List<Map<String, dynamic>>.from(accommodations.value);
+    currentList.add(newAccommodation);
+    accommodations.value = currentList;
+  }
+
+  static void updateAccommodationStatus(dynamic itemOrTitle, String newStatus) {
+    final currentList = List<Map<String, dynamic>>.from(accommodations.value);
+    int index = -1;
+    if (itemOrTitle is Map<String, dynamic>) {
+      index = currentList.indexWhere((i) => i['title'] == itemOrTitle['title']);
+    } else if (itemOrTitle is String) {
+      index = currentList.indexWhere((i) => i['title'] == itemOrTitle || i['id'] == itemOrTitle);
+    }
+    if (index != -1) {
+      currentList[index]['status'] = newStatus;
+      accommodations.value = currentList;
+    }
+  }
+
+  static void approveAccommodation(dynamic itemOrTitle) {
+    updateAccommodationStatus(itemOrTitle, 'approved');
+  }
+
+  static void rejectAccommodation(dynamic itemOrTitle) {
+    updateAccommodationStatus(itemOrTitle, 'rejected');
+  }
+
+  static void deleteListing(dynamic itemOrTitle) {
+    final currentList = List<Map<String, dynamic>>.from(accommodations.value);
+    if (itemOrTitle is Map<String, dynamic>) {
+      currentList.removeWhere((i) => i['title'] == itemOrTitle['title']);
+    } else if (itemOrTitle is String) {
+      currentList.removeWhere((i) => i['title'] == itemOrTitle || i['id'] == itemOrTitle);
+    }
+    accommodations.value = currentList;
   }
 }
