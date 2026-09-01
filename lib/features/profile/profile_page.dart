@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/localization/app_language.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -19,12 +20,11 @@ class _ProfilePageState extends State<ProfilePage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   
-  bool _acceptedTerms = false; // Új: ÁSZF & GDPR elfogadás jelölőnégyzet
+  bool _acceptedTerms = false;
   bool _isLoading = false;
   String _errorMessage = '';
 
   Future<void> _registerPartner() async {
-    // Ellenőrzés, hogy minden mező ki van-e töltve
     if (_nameController.text.trim().isEmpty ||
         _businessNameController.text.trim().isEmpty ||
         _taxNumberController.text.trim().isEmpty ||
@@ -38,7 +38,6 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
-    // Ellenőrzés, hogy elfogadta-e az ÁSZF-et és a GDPR-t
     if (!_acceptedTerms) {
       setState(() {
         _errorMessage = 'Az ÁSZF és a GDPR elfogadása kötelező a regisztrációhoz! ⚠️';
@@ -124,173 +123,177 @@ class _ProfilePageState extends State<ProfilePage> {
       currentUser = null;
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Partner Profil & Regisztráció'),
-        backgroundColor: const Color(0xFF061822),
-        actions: [
-          if (currentUser != null)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Kijelentkezés',
-              onPressed: _signOut,
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: currentUser != null
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-                  const Icon(Icons.check_circle, size: 80, color: Colors.teal),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Bejelentkezve:\n${currentUser.email}',
-                    style: const TextStyle(fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: _signOut,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Kijelentkezés'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Szállásadó / Partner Adatok (Kötelező)',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Kapcsolattartó neve *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _businessNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Vállalkozás / Szálláshely neve *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _taxNumberController,
-                    decoration: const InputDecoration(
-                      labelText: 'Hivatalos cégadatok / Regisztrációs szám / Adószám *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _addressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Cím (Település, utca, házszám) *',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _phoneController,
-                    decoration: const InputDecoration(
-                      labelText: 'Telefonszám *',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'E-mail cím (validáláshoz) *',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Jelszó *',
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ÁSZF és GDPR Elfodagás Checkbox kattintható linkkel
-                  Row(
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLanguage.currentLocale,
+      builder: (context, locale, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(AppLanguage.tr('profile_app_bar_title')),
+            backgroundColor: const Color(0xFF061822),
+            actions: [
+              if (currentUser != null)
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: AppLanguage.tr('auth_logout_btn'),
+                  onPressed: _signOut,
+                ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: currentUser != null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Checkbox(
-                        value: _acceptedTerms,
-                        activeColor: Colors.amber,
-                        checkColor: const Color(0xFF0F172A),
-                        onChanged: (val) {
-                          setState(() {
-                            _acceptedTerms = val ?? false;
-                          });
-                        },
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final url = Uri.parse('https://docs.google.com/document/d/1qE_7YtmwU7baCj8XB7GAzaPhxzS2yGs8yep1synu7zA/edit?usp=drive_web');
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
-                            }
-                          },
-                          child: const Text(
-                            'Elfogadom az ÁSZF-et és a ciprusi GDPR adatvédelmi irányelveket. *',
-                            style: TextStyle(
-                              color: Color(0xFF99FF99),
-                              fontSize: 12,
-                              height: 1.3,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  if (_errorMessage.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Text(
-                        _errorMessage,
-                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      const SizedBox(height: 40),
+                      const Icon(Icons.check_circle, size: 80, color: Colors.teal),
+                      const SizedBox(height: 16),
+                      Text(
+                        '${AppLanguage.tr('auth_logged_in_as')}\n${currentUser.email}',
+                        style: const TextStyle(fontSize: 18),
                         textAlign: TextAlign.center,
                       ),
-                    ),
-                  
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : ElevatedButton(
-                          onPressed: _registerPartner,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _signOut,
+                        icon: const Icon(Icons.logout),
+                        label: Text(AppLanguage.tr('auth_logout_btn')),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        AppLanguage.tr('profile_section_title'),
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_name_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _businessNameController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_business_name_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _taxNumberController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_tax_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _addressController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_address_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_phone_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_email_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: AppLanguage.tr('auth_password_hint'),
+                          border: const OutlineInputBorder(),
+                        ),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _acceptedTerms,
+                            activeColor: Colors.amber,
+                            checkColor: const Color(0xFF0F172A),
+                            onChanged: (val) {
+                              setState(() {
+                                _acceptedTerms = val ?? false;
+                              });
+                            },
                           ),
-                          child: const Text(
-                            'Partner Regisztráció & Validáló E-mail küldése',
-                            style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                final url = Uri.parse('https://docs.google.com/document/d/1qE_7YtmwU7baCj8XB7GAzaPhxzS2yGs8yep1synu7zA/edit?usp=drive_web');
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              child: Text(
+                                AppLanguage.tr('terms_acceptance'),
+                                style: const TextStyle(
+                                  color: Color(0xFF99FF99),
+                                  fontSize: 12,
+                                  height: 1.3,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      if (_errorMessage.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Text(
+                            _errorMessage,
+                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                ],
-              ),
-      ),
+                      
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : ElevatedButton(
+                              onPressed: _registerPartner,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: Text(
+                                AppLanguage.tr('profile_register_btn_text'),
+                                style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                    ],
+                  ),
+          ),
+        );
+      },
     );
   }
 }

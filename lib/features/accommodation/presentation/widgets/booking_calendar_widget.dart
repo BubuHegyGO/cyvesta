@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/app_language.dart';
 
 class BookingCalendarWidget extends StatefulWidget {
   final int pricePerNight;
@@ -19,6 +20,9 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
   static const Color redColor = Color(0xFFC83A3A);
   static const Color orangeColor = Color(0xFFE29547);
   static const Color blueColor = Color(0xFF4B80C3);
+  
+  // Itt van a paletta legsötétebb kékje (#080838):
+  static const Color deepBlueBackground = Color(0xFF080838);
 
   int? _selectedStartDay = 18;
   int? _selectedEndDay = 19;
@@ -55,159 +59,191 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
     });
   }
 
+  String _getMonthName(String locale) {
+    switch (locale) {
+      case 'en':
+        return 'July 2026';
+      case 'el':
+        return 'Ιούλιος 2026';
+      case 'de':
+        return 'Juli 2026';
+      case 'ru':
+        return 'Июль 2026';
+      case 'hu':
+      default:
+        return 'Július 2026';
+    }
+  }
+
+  List<String> _getWeekDays(String locale) {
+    switch (locale) {
+      case 'en':
+        return ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+      case 'el':
+        return ['ΔΕ', 'ΤΡ', 'ΤΕ', 'ΠΕ', 'ΠΑ', 'ΣΑ', 'ΚΥ'];
+      case 'de':
+        return ['MO', 'DI', 'MI', 'DO', 'FR', 'SA', 'SO'];
+      case 'ru':
+        return ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+      case 'hu':
+      default:
+        return ['HÉ', 'KE', 'SZE', 'CSÜ', 'PÉ', 'SZO', 'VA'];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final int nightCount = (_selectedStartDay != null && _selectedEndDay != null)
-        ? (_selectedEndDay! - _selectedStartDay! + 1)
-        : (_selectedStartDay != null ? 1 : 0);
-    final int totalPrice = nightCount * widget.pricePerNight;
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLanguage.currentLocale,
+      builder: (context, locale, child) {
+        final int nightCount = (_selectedStartDay != null && _selectedEndDay != null)
+            ? (_selectedEndDay! - _selectedStartDay! + 1)
+            : (_selectedStartDay != null ? 1 : 0);
+        
+        final int totalPrice = nightCount * widget.pricePerNight;
+        final weekDays = _getWeekDays(locale);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: deepBlueBackground,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF99FF99), width: 0.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Július 2026',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left, color: Colors.white70),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right, color: Colors.white70),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _DayHeader('HÉ'),
-              _DayHeader('KE'),
-              _DayHeader('SZE'),
-              _DayHeader('CSÜ'),
-              _DayHeader('PÉ'),
-              _DayHeader('SZO'),
-              _DayHeader('VA'),
-            ],
-          ),
-          const SizedBox(height: 10),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-            ),
-            itemCount: 33,
-            itemBuilder: (context, index) {
-              if (index < 2) {
-                return const SizedBox();
-              }
-              final day = index - 1;
-              bool isSelected = false;
-              if (_selectedStartDay != null && _selectedEndDay != null) {
-                isSelected = day >= _selectedStartDay! && day <= _selectedEndDay!;
-              } else if (_selectedStartDay != null) {
-                isSelected = day == _selectedStartDay;
-              }
-              final status = isSelected ? 'selected' : (_dayStatuses[day] ?? 'available');
-
-              return GestureDetector(
-                onTap: () => _onDayTap(day),
-                child: _buildCalendarTile(day, status),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _LegendItem(color: greenColor, label: 'Szabad'),
-              _LegendItem(color: redColor, label: 'Foglalt'),
-              _LegendItem(color: orangeColor, label: 'Függőben'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: Colors.white10, height: 1),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Kiválasztott dátumok:',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
-                  const SizedBox(height: 2),
                   Text(
-                    (_selectedStartDay != null && _selectedEndDay != null)
-                        ? 'Júl $_selectedStartDay. – Júl $_selectedEndDay.'
-                        : (_selectedStartDay != null)
-                            ? 'Júl $_selectedStartDay.'
-                            : 'Válassz dátumot',
+                    _getMonthName(locale),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 16,
                     ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left, color: Colors.white70),
+                        onPressed: () {},
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right, color: Colors.white70),
+                        onPressed: () {},
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: weekDays.map((d) => _DayHeader(d)).toList(),
+              ),
+              const SizedBox(height: 10),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                ),
+                itemCount: 33,
+                itemBuilder: (context, index) {
+                  if (index < 2) {
+                    return const SizedBox();
+                  }
+                  final day = index - 1;
+                  bool isSelected = false;
+                  if (_selectedStartDay != null && _selectedEndDay != null) {
+                    isSelected = day >= _selectedStartDay! && day <= _selectedEndDay!;
+                  } else if (_selectedStartDay != null) {
+                    isSelected = day == _selectedStartDay;
+                  }
+                  final status = isSelected ? 'selected' : (_dayStatuses[day] ?? 'available');
+
+                  return GestureDetector(
+                    onTap: () => _onDayTap(day),
+                    child: _buildCalendarTile(day, status),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  const Text(
-                    'Összesen:',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                  _LegendItem(color: greenColor, label: AppLanguage.tr('calendar_free')),
+                  _LegendItem(color: redColor, label: AppLanguage.tr('calendar_booked')),
+                  _LegendItem(color: orangeColor, label: AppLanguage.tr('calendar_pending')),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: Colors.white24, height: 1),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLanguage.tr('selected_dates_label'),
+                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        (_selectedStartDay != null && _selectedEndDay != null)
+                            ? 'Júl $_selectedStartDay. – Júl $_selectedEndDay.'
+                            : (_selectedStartDay != null)
+                                ? 'Júl $_selectedStartDay.'
+                                : AppLanguage.tr('search_region_hint'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} Ft',
-                    style: const TextStyle(
-                      color: Color(0xFF8BC541),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        AppLanguage.tr('total_price_label'),
+                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '€$totalPrice',
+                        style: const TextStyle(
+                          color: Color(0xFF8BC541),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildCalendarTile(int day, String status) {
-    final String priceText = '${(widget.pricePerNight / 1000).round()}k Ft';
+    final String priceText = '€${widget.pricePerNight}';
 
     if (status == 'selected') {
       return Container(
@@ -266,8 +302,8 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
             price,
             style: TextStyle(
               color: textColor.withAlpha(220),
-              fontSize: 7.5,
-              fontWeight: FontWeight.w500,
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
             ),
           ),
       ],

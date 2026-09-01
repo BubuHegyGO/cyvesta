@@ -87,7 +87,7 @@ class GastronomyPage extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          AppLanguage.tr('dining_spots'),
+                          AppLanguage.tr('cat_gastronomy'),
                           style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -186,7 +186,7 @@ class GastronomyPage extends StatelessWidget {
                                           );
                                         },
                                         child: Text(
-                                          AppLanguage.tr('book_table_btn'),
+                                          AppLanguage.tr('btn_table_reservation'),
                                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                         ),
                                       ),

@@ -8,7 +8,7 @@ import '../../core/services/stripe_service.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
 import '../accommodation/presentation/accommodation_list_page.dart';
-import '../admin/admin_moderation_page.dart'; // Új: Admin moderációs felület importálása
+import '../admin/admin_moderation_page.dart';
 import '../experiences/experiences_page.dart';
 import '../experiences/presentation/experience_detail_page.dart';
 import '../faq/faq_page.dart';
@@ -40,15 +40,6 @@ class _HomePageState extends State<HomePage> {
 
   String _selectedRegionFilter = 'all';
 
-  final List<Map<String, dynamic>> _regions = [
-    {'id': 'all', 'name': 'Összes régió (Egész Ciprus)'},
-    {'id': 'paphos', 'name': 'Paphos & Coral Bay 🏖️'},
-    {'id': 'kyrenia', 'name': 'Kyrenia (Girne) 🏰'},
-    {'id': 'limassol', 'name': 'Limassol & Akrotiri 🌴'},
-    {'id': 'larnaca', 'name': 'Larnaca & Ayia Napa ⛵'},
-    {'id': 'famagusta', 'name': 'Famagusta & Long Beach 🌊'},
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -75,7 +66,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // Admin belépés ellenőrző ablak (Bubu / 1234)
   void _showAdminLoginDialog(BuildContext context) {
     final passwordController = TextEditingController();
 
@@ -861,7 +851,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                       Row(
                         children: [
-                          // Info ikon hosszú lenyomással az Admin belépéshez (Bubu / 1234)
                           GestureDetector(
                             onLongPress: () => _showAdminLoginDialog(context),
                             child: IconButton(
@@ -902,17 +891,35 @@ class _HomePageState extends State<HomePage> {
                         isExpanded: true,
                         dropdownColor: const Color(0xFF072A40),
                         icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 24),
-                        items: _regions.map((r) => DropdownMenuItem<String>(
-                          value: r['id'],
-                          child: Text(
-                            r['id'] == 'all' ? AppLanguage.tr('search_region_hint') : r['name']!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: 'all',
+                            child: Text(
+                              AppLanguage.tr('search_region_hint'),
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ),
-                        )).toList(),
+                          DropdownMenuItem<String>(
+                            value: 'paphos',
+                            child: Text('Paphos & Coral Bay 🏖️', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          ),
+                          DropdownMenuItem<String>(
+                            value: 'kyrenia',
+                            child: Text('Kyrenia (Girne) 🏰', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          ),
+                          DropdownMenuItem<String>(
+                            value: 'limassol',
+                            child: Text('Limassol & Akrotiri 🌴', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          ),
+                          DropdownMenuItem<String>(
+                            value: 'larnaca',
+                            child: Text('Larnaca & Ayia Napa ⛵', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          ),
+                          DropdownMenuItem<String>(
+                            value: 'famagusta',
+                            child: Text('Famagusta & Long Beach 🌊', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                         onChanged: (val) => setState(() => _selectedRegionFilter = val ?? 'all'),
                       ),
                     ),

@@ -148,7 +148,7 @@ class GastronomyDetailPage extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
                                   icon: const Icon(Icons.chat_rounded, size: 18),
-                                  label: Text(AppLanguage.tr('table_reservation'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                                  label: Text(AppLanguage.tr('btn_table_reservation'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
                                   onPressed: () => _launchWhatsApp(phone, title),
                                 ),
                               ),
@@ -164,7 +164,7 @@ class GastronomyDetailPage extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
                                   icon: const Icon(Icons.phone_in_talk_rounded, size: 18),
-                                  label: Text(AppLanguage.tr('call_restaurant'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                                  label: Text(AppLanguage.tr('btn_call_restaurant'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
                                   onPressed: () => _makePhoneCall(phone),
                                 ),
                               ),
@@ -187,7 +187,7 @@ class GastronomyDetailPage extends StatelessWidget {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(AppLanguage.tr('opening_hours'), style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                                    Text(AppLanguage.tr('label_opening_hours'), style: const TextStyle(color: Colors.white60, fontSize: 11)),
                                     Text(hours, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
@@ -207,7 +207,7 @@ class GastronomyDetailPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(AppLanguage.tr('menu_preview'), style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                                Text(AppLanguage.tr('label_menu_preview'), style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 8),
                                 Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
                                 const SizedBox(height: 12),
