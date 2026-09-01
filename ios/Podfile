@@ -30,6 +30,7 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  # Itt húzza be a Flutter a pubspec.yaml-ben lévő csomagokat (Google Maps, Firebase, stb.)
   flutter_install_all_ios_pods File.dirname(File.absolutePath(__file__)) rescue nil
 end
 
