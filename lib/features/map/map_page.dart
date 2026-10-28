@@ -198,7 +198,7 @@ class _MapPageState extends State<MapPage> {
           backgroundColor: darkBg,
           body: Stack(
             children: [
-              // 1. TÉRKÉP ALAP - INGYENES, KULCS NÉLKÜLI OPENSTREETMAP CSEMPE
+              // 1. TÉRKÉP ALAP - SÖTÉT (DARK MATTER) STÍLUSÚ ELEGÁNS CSEMPE
               FlutterMap(
                 mapController: _mapController,
                 options: const MapOptions(
@@ -209,7 +209,8 @@ class _MapPageState extends State<MapPage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    subdomains: const ['a', 'b', 'c', 'd'],
                     userAgentPackageName: 'com.cyvesta.app',
                   ),
                   MarkerLayer(
