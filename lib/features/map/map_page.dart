@@ -198,7 +198,7 @@ class _MapPageState extends State<MapPage> {
           backgroundColor: darkBg,
           body: Stack(
             children: [
-              // 1. TÉRKÉP ALAP - LATIN / ANGOL BETŰS VOYAGER CSEMPE
+              // 1. TÉRKÉP ALAP - INGYENES, KULCS NÉLKÜLI OPENSTREETMAP CSEMPE
               FlutterMap(
                 mapController: _mapController,
                 options: const MapOptions(
@@ -209,8 +209,7 @@ class _MapPageState extends State<MapPage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                    subdomains: const ['a', 'b', 'c', 'd'],
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.cyvesta.app',
                   ),
                   MarkerLayer(
