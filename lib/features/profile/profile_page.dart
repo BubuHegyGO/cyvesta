@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/localization/app_language.dart';
+import '../../core/localization/app_language.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
