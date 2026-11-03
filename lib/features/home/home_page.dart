@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/localization/app_language.dart';
 import '../../core/services/auth_state.dart';
@@ -64,6 +65,49 @@ class _HomePageState extends State<HomePage> {
     _carouselTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _navigateToMapForRegion(String regionKey) {
+    LatLng targetCoord;
+    String regionTitle;
+
+    switch (regionKey) {
+      case 'paphos':
+        targetCoord = const LatLng(34.7754, 32.4245);
+        regionTitle = 'Paphos & Coral Bay';
+        break;
+      case 'kyrenia':
+        targetCoord = const LatLng(35.3375, 33.3172);
+        regionTitle = 'Kyrenia (Girne)';
+        break;
+      case 'limassol':
+        targetCoord = const LatLng(34.7071, 33.0226);
+        regionTitle = 'Limassol & Akrotiri';
+        break;
+      case 'larnaca':
+        targetCoord = const LatLng(34.9823, 33.6339);
+        regionTitle = 'Larnaca & Ayia Napa';
+        break;
+      case 'famagusta':
+        targetCoord = const LatLng(35.1264, 33.9423);
+        regionTitle = 'Famagusta & Long Beach';
+        break;
+      case 'all':
+      default:
+        targetCoord = const LatLng(34.9228, 33.6233);
+        regionTitle = 'Cyprus (Összes régió)';
+        break;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapPage(
+          initialTarget: targetCoord,
+          regionName: regionTitle,
+        ),
+      ),
+    );
   }
 
   void _showAdminLoginDialog(BuildContext context) {
@@ -156,7 +200,7 @@ class _HomePageState extends State<HomePage> {
 
   void _showAuthModal(BuildContext context) {
     bool isRegisterMode = false;
-    int selectedRole = 0; 
+    int selectedRole = 0;
     bool acceptedTerms = false;
 
     final emailController = TextEditingController();
@@ -380,8 +424,8 @@ class _HomePageState extends State<HomePage> {
                                 child: Text(
                                   '${AppLanguage.tr('terms_acceptance')} *',
                                   style: const TextStyle(
-                                    color: mintGreenBorder, 
-                                    fontSize: 11, 
+                                    color: mintGreenBorder,
+                                    fontSize: 11,
                                     height: 1.3,
                                     decoration: TextDecoration.underline,
                                   ),
@@ -484,10 +528,10 @@ class _HomePageState extends State<HomePage> {
                           child: Text(
                             isRegisterMode
                                 ? (selectedRole == 1
-                                    ? AppLanguage.tr('btn_stripe_annual')
-                                    : (selectedRole == 2
-                                        ? AppLanguage.tr('btn_stripe_half')
-                                        : AppLanguage.tr('btn_guest_reg')))
+                                ? AppLanguage.tr('btn_stripe_annual')
+                                : (selectedRole == 2
+                                ? AppLanguage.tr('btn_stripe_half')
+                                : AppLanguage.tr('btn_guest_reg')))
                                 : AppLanguage.tr('auth_login_btn'),
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
                           ),
@@ -682,7 +726,7 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           Text(AppLanguage.tr('sale_properties'), style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w900)),
                           const SizedBox(height: 2),
-                          Text(AppLanguage.tr('sale_properties_desc'), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                          const Text('Eladó ingatlanok és befektetési lehetőségek Cipruson', style: TextStyle(color: Colors.white70, fontSize: 11.5)),
                         ],
                       ),
                     ),
@@ -699,14 +743,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showNearbyServicesModal(BuildContext context) {
-    final List<Map<String, dynamic>> services = [
-      {'title': AppLanguage.tr('serv_car_rental'), 'desc': AppLanguage.tr('serv_car_rental_desc'), 'icon': Icons.directions_car_rounded, 'color': sunnyGold},
-      {'title': AppLanguage.tr('serv_bike_rental'), 'desc': AppLanguage.tr('serv_bike_rental_desc'), 'icon': Icons.two_wheeler_rounded, 'color': mintGreenBorder},
-      {'title': AppLanguage.tr('serv_pharmacy'), 'desc': AppLanguage.tr('serv_pharmacy_desc'), 'icon': Icons.local_pharmacy_rounded, 'color': Colors.redAccent},
-      {'title': AppLanguage.tr('serv_supermarket'), 'desc': AppLanguage.tr('serv_supermarket_desc'), 'icon': Icons.shopping_cart_rounded, 'color': Colors.lightBlueAccent},
-      {'title': AppLanguage.tr('serv_nightlife'), 'desc': AppLanguage.tr('serv_nightlife_desc'), 'icon': Icons.nightlife_rounded, 'color': Colors.pinkAccent},
-      {'title': AppLanguage.tr('serv_bus_stop'), 'desc': AppLanguage.tr('serv_bus_stop_desc'), 'icon': Icons.directions_bus_rounded, 'color': Colors.amberAccent},
-      {'title': AppLanguage.tr('serv_atm'), 'desc': AppLanguage.tr('serv_atm_desc'), 'icon': Icons.atm_rounded, 'color': Colors.tealAccent},
+    // Alapértelmezett partner kategóriák
+    final baseServices = [
+      {'title': AppLanguage.tr('cat_partner_apartment'), 'desc': 'Apartmanok és villák Cipruson', 'icon': Icons.apartment_rounded, 'color': sunnyGold},
+      {'title': AppLanguage.tr('cat_partner_hotel'), 'desc': 'Szállodák és hotelek', 'icon': Icons.hotel_rounded, 'color': mintGreenBorder},
+      {'title': AppLanguage.tr('cat_partner_taxi'), 'desc': 'Helyi taxiszolgáltatások', 'icon': Icons.local_taxi_rounded, 'color': Colors.amberAccent},
+      {'title': AppLanguage.tr('cat_partner_transfer'), 'desc': 'Reptéri transzferek', 'icon': Icons.flight_land_rounded, 'color': Colors.lightBlueAccent},
+      {'title': AppLanguage.tr('cat_partner_bus'), 'desc': 'Buszjáratok és menetrend', 'icon': Icons.directions_bus_rounded, 'color': Colors.tealAccent},
+      {'title': AppLanguage.tr('cat_partner_shop'), 'desc': 'Bevásárló üzletek', 'icon': Icons.shopping_bag_rounded, 'color': Colors.pinkAccent},
+      {'title': AppLanguage.tr('cat_partner_gift'), 'desc': 'Ajándék boltok', 'icon': Icons.card_giftcard_rounded, 'color': Colors.redAccent},
+      {'title': AppLanguage.tr('cat_partner_pharmacy'), 'desc': 'Gyógyszertárak és patikák', 'icon': Icons.local_pharmacy_rounded, 'color': Colors.red},
+      {'title': AppLanguage.tr('cat_partner_tour'), 'desc': 'Szervezett túrák és kirándulások', 'icon': Icons.tour_rounded, 'color': sunnyGold},
+      {'title': AppLanguage.tr('cat_partner_event'), 'desc': 'Helyi rendezvények', 'icon': Icons.event_rounded, 'color': mintGreenBorder},
+      {'title': AppLanguage.tr('cat_partner_sport'), 'desc': 'Sport és élmények', 'icon': Icons.sports_soccer_rounded, 'color': Colors.lightBlueAccent},
     ];
 
     showModalBottomSheet(
@@ -741,32 +790,49 @@ class _HomePageState extends State<HomePage> {
             const Divider(color: Colors.white12, height: 10),
             const SizedBox(height: 8),
 
+            // --- ÚJ: ValueListenableBuilder a dinamikus egyedi kategóriákhoz (pl. "Fagyizó") ---
             Expanded(
-              child: ListView.builder(
-                itemCount: services.length,
-                itemBuilder: (context, index) {
-                  final s = services[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF093753),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: mintGreenBorder.withValues(alpha: 0.3)),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: deepBlueIcon, shape: BoxShape.circle, border: Border.all(color: s['color'] as Color, width: 1.2)),
-                        child: Icon(s['icon'] as IconData, color: s['color'] as Color, size: 20),
-                      ),
-                      title: Text(s['title'] as String, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      subtitle: Text(s['desc'] as String, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                      trailing: const Icon(Icons.map_rounded, color: mintGreenBorder, size: 18),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const MapPage()));
-                      },
-                    ),
+              child: ValueListenableBuilder<List<String>>(
+                valueListenable: DataService.customCategories,
+                builder: (context, customCats, child) {
+                  // Összefűzzük az alap kategóriákat a partnerek által felvett egyedi kategóriákkal
+                  final allServices = List<Map<String, dynamic>>.from(baseServices);
+                  for (var customCat in customCats) {
+                    allServices.add({
+                      'title': customCat,
+                      'desc': 'Egyedi partner szolgáltatás',
+                      'icon': Icons.star_rounded,
+                      'color': sunnyGold,
+                    });
+                  }
+
+                  return ListView.builder(
+                    itemCount: allServices.length,
+                    itemBuilder: (context, index) {
+                      final s = allServices[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF093753),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: mintGreenBorder.withValues(alpha: 0.3)),
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: deepBlueIcon, shape: BoxShape.circle, border: Border.all(color: s['color'] as Color, width: 1.2)),
+                            child: Icon(s['icon'] as IconData, color: s['color'] as Color, size: 20),
+                          ),
+                          title: Text(s['title'] as String, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          subtitle: Text(s['desc'] as String, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                          trailing: const Icon(Icons.map_rounded, color: mintGreenBorder, size: 18),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _navigateToMapForRegion(_selectedRegionFilter);
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -827,9 +893,36 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => AccommodationDetailPage(accommodationData: item)));
   }
 
+  Widget _buildCategorySquare(String title, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: BoxDecoration(
+          color: turquoiseGlass,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: mintGreenBorder, width: 1.2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: textDark, size: 22),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: textDark, fontSize: 9.5, fontWeight: FontWeight.w900, height: 1.1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
+    return ValueListenableBuilder(
       valueListenable: AppLanguage.currentLocale,
       builder: (context, locale, child) {
         return CyvestaScaffold(
@@ -878,51 +971,60 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 12),
 
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF093753),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: mintGreenBorder, width: 1.4),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedRegionFilter,
-                        isExpanded: true,
-                        dropdownColor: const Color(0xFF072A40),
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 24),
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: 'all',
-                            child: Text(
-                              AppLanguage.tr('search_region_hint'),
-                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF093753),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: mintGreenBorder, width: 1.4),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedRegionFilter,
+                              isExpanded: true,
+                              dropdownColor: const Color(0xFF072A40),
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 24),
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: 'all',
+                                  child: Text(
+                                    AppLanguage.tr('search_region_hint'),
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'paphos',
+                                  child: Text('Paphos & Coral Bay 🏖️', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'kyrenia',
+                                  child: Text('Kyrenia (Girne) 🏰', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'limassol',
+                                  child: Text('Limassol & Akrotiri 🌴', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'larnaca',
+                                  child: Text('Larnaca & Ayia Napa ⛵', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ),
+                                DropdownMenuItem<String>(
+                                  value: 'famagusta',
+                                  child: Text('Famagusta & Long Beach 🌊', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                setState(() => _selectedRegionFilter = val ?? 'all');
+                                _navigateToMapForRegion(_selectedRegionFilter);
+                              },
                             ),
                           ),
-                          DropdownMenuItem<String>(
-                            value: 'paphos',
-                            child: Text('Paphos & Coral Bay 🏖️', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: 'kyrenia',
-                            child: Text('Kyrenia (Girne) 🏰', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: 'limassol',
-                            child: Text('Limassol & Akrotiri 🌴', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: 'larnaca',
-                            child: Text('Larnaca & Ayia Napa ⛵', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: 'famagusta',
-                            child: Text('Famagusta & Long Beach 🌊', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                        onChanged: (val) => setState(() => _selectedRegionFilter = val ?? 'all'),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 12),
 
@@ -961,19 +1063,19 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 14),
 
-                  ValueListenableBuilder<List<Map<String, dynamic>>>(
+                  ValueListenableBuilder(
                     valueListenable: DataService.accommodations,
                     builder: (context, allItems, child) {
-                      final items = allItems.where((i) => i['status'] != 'rejected').toList();
+                      final items = (allItems as List).where((i) => i['status'] != 'rejected').toList();
                       if (items.isEmpty) return const SizedBox();
 
                       return Column(
                         children: [
                           SizedBox(
-                            height: 330,
+                            height: 345,
                             child: PageView.builder(
                               controller: _pageController,
-                              onPageChanged: (idx) => setState(() => _currentCarouselIndex = idx % items.length),
+                              onPageChanged: (idx) => setState(() => _currentCarouselIndex = (idx % items.length).toInt()),
                               itemBuilder: (context, index) {
                                 final item = items[index % items.length];
                                 final title = item['title']?.toString() ?? '';
@@ -998,12 +1100,11 @@ class _HomePageState extends State<HomePage> {
                                           children: [
                                             Image.asset(
                                               imagePath,
-                                              height: 210,
+                                              height: 195,
                                               width: double.infinity,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (c, e, s) => Container(height: 210, color: deepBlueIcon, child: const Icon(Icons.villa_rounded, size: 60, color: mintGreenBorder)),
+                                              errorBuilder: (c, e, s) => Container(height: 195, color: deepBlueIcon, child: const Icon(Icons.villa_rounded, size: 60, color: mintGreenBorder)),
                                             ),
-                                            
                                             Positioned(
                                               top: 10,
                                               right: 10,
@@ -1023,11 +1124,10 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                               ),
                                             ),
-
                                             Positioned(
                                               top: 10,
                                               left: 10,
-                                              child: ValueListenableBuilder<List<Map<String, dynamic>>>(
+                                              child: ValueListenableBuilder(
                                                 valueListenable: DataService.favoriteItems,
                                                 builder: (context, favs, child) {
                                                   final isFav = DataService.isFavorite(item);
@@ -1095,7 +1195,6 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(height: 10),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(items.length, (i) => Container(
@@ -1141,33 +1240,6 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildCategorySquare(String title, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 72,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: turquoiseGlass,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: mintGreenBorder, width: 1.2),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: textDark, size: 22),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: textDark, fontSize: 9.5, fontWeight: FontWeight.w900, height: 1.1),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -18,7 +18,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const MapPage(),
+    MapPage(), // <-- Itt vettük ki a const kulcsszót!
     const FavoritesPage(),
     const NotificationsPage(),
     const ProfilePage(),
@@ -29,8 +29,46 @@ class _MainScreenState extends State<MainScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: AppLanguage.currentLocale,
       builder: (context, locale, child) {
+        final lang = locale;
+
+        // Nyelvek szerinti alsó menü feliratok
+        String homeLabel = 'Kezdőlap';
+        String mapLabel = 'Térkép';
+        String favLabel = 'Kedvencek';
+        String alertsLabel = 'Értesítések';
+        String profileLabel = 'Fiók';
+
+        if (lang == 'en') {
+          homeLabel = 'Home';
+          mapLabel = 'Map';
+          favLabel = 'Favorites';
+          alertsLabel = 'Alerts';
+          profileLabel = 'Profile';
+        } else if (lang == 'ru') {
+          homeLabel = 'Главная';
+          mapLabel = 'Карта';
+          favLabel = 'Избранное';
+          alertsLabel = 'Уведомления';
+          profileLabel = 'Профиль';
+        } else if (lang == 'de') {
+          homeLabel = 'Startseite';
+          mapLabel = 'Karte';
+          favLabel = 'Favoriten';
+          alertsLabel = 'Benachrichtigungen';
+          profileLabel = 'Profil';
+        } else if (lang == 'el') {
+          homeLabel = 'Αρχική';
+          mapLabel = 'Χάρτης';
+          favLabel = 'Αγαπημένα';
+          alertsLabel = 'Ειδοποιήσεις';
+          profileLabel = 'Προφίλ';
+        }
+
         return Scaffold(
-          body: _pages[_currentIndex],
+          body: SafeArea(
+            bottom: false,
+            child: _pages[_currentIndex],
+          ),
           bottomNavigationBar: Container(
             decoration: const BoxDecoration(
               border: Border(
@@ -49,23 +87,23 @@ class _MainScreenState extends State<MainScreen> {
               items: [
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.home_rounded),
-                  label: AppLanguage.tr('nav_home'),
+                  label: homeLabel,
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.map_rounded),
-                  label: AppLanguage.tr('nav_map'),
+                  label: mapLabel,
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.favorite_rounded),
-                  label: AppLanguage.tr('nav_favorites'),
+                  label: favLabel,
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.notifications_rounded),
-                  label: AppLanguage.tr('nav_alerts'),
+                  label: alertsLabel,
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.person_rounded),
-                  label: AppLanguage.tr('nav_profile'),
+                  label: profileLabel,
                 ),
               ],
             ),

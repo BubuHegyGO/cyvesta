@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class DataService {
-  static final ValueNotifier<List<Map<String, dynamic>>> accommodations = ValueNotifier<List<Map<String, dynamic>>>([
+  static final ValueNotifier<List<Map<String, dynamic>>> accommodations =
+  ValueNotifier<List<Map<String, dynamic>>>([
     {
       'title': 'Luxury Paphos Villa',
       'location': 'Paphos, Cyprus',
@@ -31,7 +32,23 @@ class DataService {
     },
   ]);
 
-  static final ValueNotifier<List<Map<String, dynamic>>> favoriteItems = ValueNotifier<List<Map<String, dynamic>>>([]);
+  static final ValueNotifier<List<Map<String, dynamic>>> favoriteItems =
+  ValueNotifier<List<Map<String, dynamic>>>([]);
+
+  // Egyedi/egyéb kategóriák tárolása (pl. "Fagyizó")
+  static final ValueNotifier<List<String>> customCategories =
+  ValueNotifier<List<String>>([]);
+
+  static void addCustomCategory(String categoryName) {
+    final trimmed = categoryName.trim();
+    if (trimmed.isNotEmpty) {
+      final currentList = List<String>.from(customCategories.value);
+      if (!currentList.contains(trimmed)) {
+        currentList.add(trimmed);
+        customCategories.value = currentList;
+      }
+    }
+  }
 
   static bool isFavorite(Map<String, dynamic> item) {
     return favoriteItems.value.any((fav) => fav['title'] == item['title']);

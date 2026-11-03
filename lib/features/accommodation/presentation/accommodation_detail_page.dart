@@ -340,7 +340,7 @@ class _AccommodationDetailPageState extends State<AccommodationDetailPage> {
                               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                             ),
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const MapPage()));
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => MapPage()));
                             },
                           ),
                         ),
