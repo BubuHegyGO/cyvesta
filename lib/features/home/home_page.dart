@@ -163,9 +163,20 @@ class _HomePageState extends State<HomePage> {
     required BuildContext modalContext,
     required String provider,
     required bool isRegisterMode,
-    required int selectedRole,
+    required bool isPartnerMode,
     required bool acceptedTerms,
   }) async {
+    if (isPartnerMode) {
+      Navigator.pop(modalContext);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const HostRegistrationPage(),
+        ),
+      );
+      return;
+    }
+
     if (isRegisterMode && !acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('A regisztrációhoz el kell fogadni az ÁSZF-et és a GDPR nyilatkozatot! ⚠️')),
@@ -173,42 +184,18 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    if (isRegisterMode && selectedRole != 0) {
-      final planName = selectedRole == 1 ? 'Éves Partner Tagság' : 'Féléves Partner Tagság';
-      final amount = selectedRole == 1 ? '240' : '180';
-
-      final success = await StripeService.makePayment(
-        context: context,
-        amount: amount,
-        currency: 'EUR',
-        planName: planName,
-      );
-
-      if (success) {
-        AuthState.loginWithProvider(provider);
-        AuthState.isPartner.value = true;
-        if (modalContext.mounted) Navigator.pop(modalContext);
-        if (context.mounted) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const HostRegistrationPage()));
-        }
-      }
-    } else {
-      AuthState.loginWithProvider(provider);
-      Navigator.pop(modalContext);
-    }
+    AuthState.loginWithProvider(provider);
+    Navigator.pop(modalContext);
   }
 
   void _showAuthModal(BuildContext context) {
     bool isRegisterMode = false;
-    int selectedRole = 0;
+    bool isPartnerMode = false; // false = Vendég, true = Partner
     bool acceptedTerms = false;
 
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final nameController = TextEditingController();
-    final taxController = TextEditingController();
-    final addressController = TextEditingController();
-    final phoneController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -292,100 +279,75 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 12),
 
-                      if (isRegisterMode) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setModalState(() => selectedRole = 0),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                                  decoration: BoxDecoration(
-                                    color: selectedRole == 0 ? sunnyGold : const Color(0xFF093753),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: selectedRole == 0 ? Colors.white : mintGreenBorder.withValues(alpha: 0.4)),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Text(AppLanguage.tr('role_guest'), style: TextStyle(color: selectedRole == 0 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      Text(AppLanguage.tr('role_free'), style: TextStyle(color: selectedRole == 0 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
-                                    ],
+                      // ==========================================
+                      // CSAK KÉT GOMB FELÜL: VENDÉG ÉS PARTNER
+                      // ==========================================
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setModalState(() => isPartnerMode = false),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !isPartnerMode ? sunnyGold : const Color(0xFF093753),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: !isPartnerMode ? Colors.white : mintGreenBorder.withValues(alpha: 0.4)),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'Vendég',
+                                  style: TextStyle(
+                                    color: !isPartnerMode ? textDark : Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setModalState(() => selectedRole = 1),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                                  decoration: BoxDecoration(
-                                    color: selectedRole == 1 ? sunnyGold : const Color(0xFF093753),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: selectedRole == 1 ? Colors.white : mintGreenBorder.withValues(alpha: 0.4)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setModalState(() => isPartnerMode = true);
+                                Navigator.pop(ctx);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const HostRegistrationPage(),
                                   ),
-                                  child: Column(
-                                    children: [
-                                      Text(AppLanguage.tr('role_annual'), style: TextStyle(color: selectedRole == 1 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      Text(AppLanguage.tr('role_annual_price'), style: TextStyle(color: selectedRole == 1 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
-                                    ],
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isPartnerMode ? sunnyGold : const Color(0xFF093753),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: isPartnerMode ? Colors.white : mintGreenBorder.withValues(alpha: 0.4)),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'Partner',
+                                  style: TextStyle(
+                                    color: isPartnerMode ? textDark : Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setModalState(() => selectedRole = 2),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                                  decoration: BoxDecoration(
-                                    color: selectedRole == 2 ? sunnyGold : const Color(0xFF093753),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: selectedRole == 2 ? Colors.white : mintGreenBorder.withValues(alpha: 0.4)),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Text(AppLanguage.tr('role_half_year'), style: TextStyle(color: selectedRole == 2 ? textDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      Text(AppLanguage.tr('role_half_year_price'), style: TextStyle(color: selectedRole == 2 ? textDark : mintGreenBorder, fontWeight: FontWeight.w900, fontSize: 9.5)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-
-                        TextField(
-                          controller: nameController,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                          decoration: _authInputDec(selectedRole == 0 ? '${AppLanguage.tr('auth_name_hint')} *' : '${AppLanguage.tr('auth_business_name_hint')} *', Icons.person_outline),
-                        ),
-                        const SizedBox(height: 10),
-
-                        if (selectedRole != 0) ...[
-                          TextField(
-                            controller: taxController,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                            decoration: _authInputDec('${AppLanguage.tr('auth_tax_hint')} *', Icons.badge_outlined),
                           ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: addressController,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                            decoration: _authInputDec('${AppLanguage.tr('auth_address_hint')} *', Icons.location_on_outlined),
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: phoneController,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                            decoration: _authInputDec('${AppLanguage.tr('auth_phone_hint')} *', Icons.phone_outlined),
-                          ),
-                          const SizedBox(height: 10),
                         ],
-                      ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      TextField(
+                        controller: nameController,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: _authInputDec(AppLanguage.tr('auth_name_hint'), Icons.person_outline),
+                      ),
+                      const SizedBox(height: 10),
 
                       TextField(
                         controller: emailController,
@@ -466,41 +428,15 @@ class _HomePageState extends State<HomePage> {
                                 return;
                               }
 
-                              if (selectedRole != 0) {
-                                if (taxController.text.trim().isEmpty ||
-                                    addressController.text.trim().isEmpty ||
-                                    phoneController.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Minden partner adat kitöltése kötelező! ⚠️')),
-                                  );
-                                  return;
-                                }
-
-                                final planName = selectedRole == 1 ? 'Éves Partner Tagság' : 'Féléves Partner Tagság';
-                                final amount = selectedRole == 1 ? '240' : '180';
-
-                                final successPayment = await StripeService.makePayment(
-                                  context: context,
-                                  amount: amount,
-                                  currency: 'EUR',
-                                  planName: planName,
-                                );
-
-                                if (!successPayment) return;
-                              }
-
                               final successReg = await AuthState.registerWithEmail(
                                 email: email,
                                 password: password,
                                 name: name.isNotEmpty ? name : email.split('@').first,
-                                asPartner: selectedRole != 0,
+                                asPartner: false,
                               );
 
                               if (successReg) {
                                 if (ctx.mounted) Navigator.pop(ctx);
-                                if (selectedRole != 0 && context.mounted) {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const HostRegistrationPage()));
-                                }
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -526,19 +462,14 @@ class _HomePageState extends State<HomePage> {
                             }
                           },
                           child: Text(
-                            isRegisterMode
-                                ? (selectedRole == 1
-                                ? AppLanguage.tr('btn_stripe_annual')
-                                : (selectedRole == 2
-                                ? AppLanguage.tr('btn_stripe_half')
-                                : AppLanguage.tr('btn_guest_reg')))
-                                : AppLanguage.tr('auth_login_btn'),
+                            isRegisterMode ? AppLanguage.tr('btn_guest_reg') : AppLanguage.tr('auth_login_btn'),
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
                           ),
                         ),
                       ),
                       const SizedBox(height: 14),
 
+                      // Közösségi bejelentkezés (csak vendég módban)
                       Row(
                         children: [
                           const Expanded(child: Divider(color: Colors.white24)),
@@ -550,7 +481,6 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-
                       Row(
                         children: [
                           Expanded(
@@ -560,7 +490,7 @@ class _HomePageState extends State<HomePage> {
                                 modalContext: ctx,
                                 provider: 'Google',
                                 isRegisterMode: isRegisterMode,
-                                selectedRole: selectedRole,
+                                isPartnerMode: isPartnerMode,
                                 acceptedTerms: acceptedTerms,
                               );
                             }),
@@ -573,7 +503,7 @@ class _HomePageState extends State<HomePage> {
                                 modalContext: ctx,
                                 provider: 'Apple',
                                 isRegisterMode: isRegisterMode,
-                                selectedRole: selectedRole,
+                                isPartnerMode: isPartnerMode,
                                 acceptedTerms: acceptedTerms,
                               );
                             }),
@@ -586,7 +516,7 @@ class _HomePageState extends State<HomePage> {
                                 modalContext: ctx,
                                 provider: 'Facebook',
                                 isRegisterMode: isRegisterMode,
-                                selectedRole: selectedRole,
+                                isPartnerMode: isPartnerMode,
                                 acceptedTerms: acceptedTerms,
                               );
                             }),
@@ -743,7 +673,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showNearbyServicesModal(BuildContext context) {
-    // Alapértelmezett partner kategóriák
     final baseServices = [
       {'title': AppLanguage.tr('cat_partner_apartment'), 'desc': 'Apartmanok és villák Cipruson', 'icon': Icons.apartment_rounded, 'color': sunnyGold},
       {'title': AppLanguage.tr('cat_partner_hotel'), 'desc': 'Szállodák és hotelek', 'icon': Icons.hotel_rounded, 'color': mintGreenBorder},
@@ -789,14 +718,12 @@ class _HomePageState extends State<HomePage> {
             ),
             const Divider(color: Colors.white12, height: 10),
             const SizedBox(height: 8),
-
-            // --- ÚJ: ValueListenableBuilder a dinamikus egyedi kategóriákhoz (pl. "Fagyizó") ---
             Expanded(
               child: ValueListenableBuilder<List<String>>(
                 valueListenable: DataService.customCategories,
                 builder: (context, customCats, child) {
-                  // Összefűzzük az alap kategóriákat a partnerek által felvett egyedi kategóriákkal
                   final allServices = List<Map<String, dynamic>>.from(baseServices);
+
                   for (var customCat in customCats) {
                     allServices.add({
                       'title': customCat,

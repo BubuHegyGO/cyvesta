@@ -90,6 +90,12 @@ class AppLanguage {
       'profile_direct_chat_label': 'Közvetlen chat lehetőség biztosítása',
       'profile_active_account': 'Aktív fiók',
 
+      'profile_id_type_he': 'Céges (HE szám)',
+      'profile_id_type_vat': 'Egyéni / Adószám (VAT)',
+      'profile_verify_btn': 'Ellenőrzés',
+      'profile_license_hint_he': 'Cégjegyzékszám (pl. HE 475909)',
+      'profile_tax_hint_vat': 'Adószám / VAT (pl. CY 12345678X)',
+
       'cat_partner_apartment': 'Apartman, Villa',
       'cat_partner_hotel': 'Hotel',
       'cat_partner_taxi': 'Taxi',
@@ -262,6 +268,12 @@ class AppLanguage {
       'profile_address_hint': 'Address / Location in Cyprus',
       'profile_direct_chat_label': 'Enable direct chat option',
       'profile_active_account': 'Active account',
+
+      'profile_id_type_he': 'Corporate (HE No.)',
+      'profile_id_type_vat': 'Individual / Tax (VAT)',
+      'profile_verify_btn': 'Verify',
+      'profile_license_hint_he': 'Registration No. (e.g. HE 475909)',
+      'profile_tax_hint_vat': 'Tax ID / VAT (e.g. CY 12345678X)',
 
       'cat_partner_apartment': 'Apartment, Villa',
       'cat_partner_hotel': 'Hotel',
@@ -436,6 +448,12 @@ class AppLanguage {
       'profile_direct_chat_label': 'Ενεργοποίηση άμεσης συνομιλίας',
       'profile_active_account': 'Ενεργός λογαριασμός',
 
+      'profile_id_type_he': 'Εταιρεία (Αρ. HE)',
+      'profile_id_type_vat': 'Ατομική / ΑΦΜ (VAT)',
+      'profile_verify_btn': 'Έλεγχος',
+      'profile_license_hint_he': 'Αρ. Εγγραφής (π.χ. HE 475909)',
+      'profile_tax_hint_vat': 'ΑΦΜ / VAT (π.χ. CY 12345678X)',
+
       'cat_partner_apartment': 'Διαμέρισμα, Βίλα',
       'cat_partner_hotel': 'Ξενοδοχείο',
       'cat_partner_taxi': 'Ταξί',
@@ -609,6 +627,12 @@ class AppLanguage {
       'profile_direct_chat_label': 'Direkte Chat-Option aktivieren',
       'profile_active_account': 'Aktives Konto',
 
+      'profile_id_type_he': 'Firma (HE-Nr.)',
+      'profile_id_type_vat': 'Einzelunternehmer / MwSt. (VAT)',
+      'profile_verify_btn': 'Prüfen',
+      'profile_license_hint_he': 'Reg.-Nr. (z. B. HE 475909)',
+      'profile_tax_hint_vat': 'Steuernr. / VAT (z. B. CY 12345678X)',
+
       'cat_partner_apartment': 'Apartment, Villa',
       'cat_partner_hotel': 'Hotel',
       'cat_partner_taxi': 'Taxi',
@@ -781,6 +805,12 @@ class AppLanguage {
       'profile_address_hint': 'Адрес на Кипре',
       'profile_direct_chat_label': 'Включить прямой чат',
       'profile_active_account': 'Активный аккаунт',
+
+      'profile_id_type_he': 'Компания (HE №)',
+      'profile_id_type_vat': 'ИП / ИНН (VAT)',
+      'profile_verify_btn': 'Проверить',
+      'profile_license_hint_he': 'Рег. номер (напр. HE 475909)',
+      'profile_tax_hint_vat': 'ИНН / VAT (напр. CY 12345678X)',
 
       'cat_partner_apartment': 'Апартаменты, Вилла',
       'cat_partner_hotel': 'Отель',

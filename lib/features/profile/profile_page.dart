@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/localization/app_language.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 import '../../core/services/auth_state.dart';
-import '../../core/services/data_service.dart'; // <-- Hozzáadva
-
+import '../../core/services/data_service.dart';
+import '../../core/services/partner_verification_service.dart';
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -20,6 +20,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool _isRegisterMode = true;
   bool _isPartnerMode = false;
+
+  // --- Kétutas partner validációhoz szükséges állapotok ---
+  String _partnerIdentifierType = 'HE'; // 'HE' vagy 'VAT'
+  bool _isPartnerVerified = false;
+  String? _partnerVerificationMsg;
+  bool _isVerifyingPartner = false;
 
   String _selectedCategoryKey = 'cat_partner_apartment';
   final List<String> _categoryKeys = [
@@ -52,6 +58,40 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _enableDirectChat = true;
   bool _acceptedTerms = false;
 
+  // --- Partner azonosító ellenőrző funkció ---
+  Future<void> _verifyPartnerIdentifier() async {
+    final identifier = _partnerIdentifierType == 'HE' ? _licenseController.text.trim() : _taxController.text.trim();
+
+    if (identifier.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kérjük, add meg az azonosítószámot az ellenőrzéshez! ⚠️'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    setState(() {
+      _isVerifyingPartner = true;
+      _partnerVerificationMsg = null;
+    });
+
+    // Szimulált backend / hálózati ellenőrzés
+    await Future.delayed(const Duration(seconds: 1));
+
+    setState(() {
+      _isVerifyingPartner = false;
+      if (_partnerIdentifierType == 'HE' && identifier.toUpperCase().startsWith('HE')) {
+        _isPartnerVerified = true;
+        _partnerVerificationMsg = 'Cégjegyzékszám sikeresen ellenőrizve és aktív! ✅';
+      } else if (_partnerIdentifierType == 'VAT' && identifier.isNotEmpty) {
+        _isPartnerVerified = true;
+        _partnerVerificationMsg = 'Adószám sikeresen ellenőrizve! ✅';
+      } else {
+        _isPartnerVerified = false;
+        _partnerVerificationMsg = 'Érvénytelen formátum vagy nem található a nyilvántartásban. ❌';
+      }
+    });
+  }
+
   void _handleSubmit() async {
     if (_isRegisterMode && !_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +123,6 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (success && mounted) {
-        // --- Ha "Egyéb" volt kiválasztva és van beírt szöveg, elmentjük a DataService-be ---
         if (_isPartnerMode && _selectedCategoryKey == 'cat_partner_other' && _customCategoryController.text.trim().isNotEmpty) {
           DataService.addCustomCategory(_customCategoryController.text.trim());
         }
@@ -410,18 +449,107 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 10),
 
-                      TextField(
-                        controller: _taxController,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _inputDec(AppLanguage.tr('profile_tax_hint'), Icons.receipt_long_outlined),
+                      // --- KÉTUTAS PARTNER TÍPUS VÁLASZTÓ (HE vagy VAT) ---
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF093753),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: mintGreenBorder, width: 1.2),
+                        ),
+                        child: ToggleButtons(
+                          isSelected: [_partnerIdentifierType == 'HE', _partnerIdentifierType == 'VAT'],
+                          onPressed: (index) {
+                            setState(() {
+                              _partnerIdentifierType = index == 0 ? 'HE' : 'VAT';
+                              _isPartnerVerified = false;
+                              _partnerVerificationMsg = null;
+                            });
+                          },
+                          color: Colors.white70,
+                          selectedColor: textDark,
+                          fillColor: sunnyGold,
+                          borderRadius: BorderRadius.circular(12),
+                          constraints: const BoxConstraints(minHeight: 38, minWidth: 140),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(AppLanguage.tr('profile_id_type_he'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(AppLanguage.tr('profile_id_type_vat'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 10),
 
-                      TextField(
-                        controller: _licenseController,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: _inputDec(AppLanguage.tr('profile_license_hint'), Icons.badge_outlined),
-                      ),
+                      // Dinamikus mező és ellenőrzés gomb a választás alapján
+                      if (_partnerIdentifierType == 'HE') ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _licenseController,
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: _inputDec(AppLanguage.tr('profile_license_hint_he'), Icons.badge_outlined),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: sunnyGold,
+                                foregroundColor: textDark,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: _isVerifyingPartner ? null : _verifyPartnerIdentifier,
+                              child: _isVerifyingPartner
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : Text(AppLanguage.tr('profile_verify_btn'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _taxController,
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: _inputDec(AppLanguage.tr('profile_tax_hint_vat'), Icons.receipt_long_outlined),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: sunnyGold,
+                                foregroundColor: textDark,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: _isVerifyingPartner ? null : _verifyPartnerIdentifier,
+                              child: _isVerifyingPartner
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : Text(AppLanguage.tr('profile_verify_btn'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      // Validációs visszajelzés
+                      if (_partnerVerificationMsg != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          _partnerVerificationMsg!,
+                          style: TextStyle(
+                            color: _isPartnerVerified ? mintGreenBorder : Colors.redAccent,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
 
                       TextField(

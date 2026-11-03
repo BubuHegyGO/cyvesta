@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../profile/profile_page.dart'; // Itt érjük el a profil/partner oldalt
 
 class LoginPage extends StatefulWidget {
   final bool initialRegister; // ÚJ PARAMÉTER
@@ -13,7 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   static const Color bgColor = Color(0xFF07130A);
   static const Color accent = Color(0xFF8BC541);
 
-  late bool _isLogin; // MÓDOSÍTVA: Az initState állítja be!
+  late bool _isLogin;
   bool _obscurePassword = true;
 
   final TextEditingController _emailController = TextEditingController();
@@ -23,7 +24,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // Ha a gomb felől az kerül átadásra, hogy regisztrálni szeretne, akkor hamisra állítjuk a bejelentkezést
     _isLogin = !widget.initialRegister;
   }
 
@@ -33,6 +33,16 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  // Navigáció a ProfilePage / Partner regisztrációs oldalra
+  void _navigateToProfilePage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProfilePage(initialTabIsPartner: true),
+      ),
+    );
   }
 
   @override
@@ -54,16 +64,16 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
-              // HIVATALOS LOGÓ KÉP AZ IMAGES MAPPÁBÓL
+              // LOGÓ
               Image.asset(
                 'assets/images/hegygo_logo.png',
-                height: 80,
+                height: 70,
                 fit: BoxFit.contain,
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
 
               // VÁLTÓ GOMBOK (BEJELENTKEZÉS / REGISZTRÁCIÓ TAB-OK)
               Container(
@@ -122,9 +132,9 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              // REGISZTRÁCIÓS NÉV MEZŐ (CSAK HA REGISZTRÁCIÓBAN VAGYUNK)
+              // NÉV MEZŐ (CSAK HA REGISZTRÁCIÓ)
               if (!_isLogin) ...[
                 TextField(
                   controller: _nameController,
@@ -202,7 +212,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
 
               if (_isLogin) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -215,7 +225,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // FŐ AKCIÓGOMB
               SizedBox(
@@ -241,10 +251,68 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // KÖZÖSSÉGI BEJELENTKEZÉS (Google, Apple, Facebook - Csak Vendég / Bejelentkezés esetén)
+              const Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.white24)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('Vagy folytasd:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ),
+                  Expanded(child: Divider(color: Colors.white24)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _socialButton('Google', Icons.g_mobiledata, () {}),
+                  _socialButton('Apple', Icons.apple, () {}),
+                  _socialButton('Facebook', Icons.facebook, () {}),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // ===================================================
+              // "Regisztrálj itt!" gomb -> ProfilePage-re navigálás
+              // ===================================================
+              Center(
+                child: TextButton(
+                  onPressed: _navigateToProfilePage,
+                  child: const Text(
+                    'Regisztrálj itt! (Partner Fiók / Profil)',
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _socialButton(String label, IconData icon, VoidCallback onPressed) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white24),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.black.withValues(alpha: 0.2),
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon, color: accent),
+      label: Text(label, style: const TextStyle(fontSize: 13)),
     );
   }
 }

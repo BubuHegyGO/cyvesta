@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/widgets/cyvesta_scaffold.dart';
+import '../../../../core/services/listing_duplicate_service.dart';
+import '../../../../core/services/auth_state.dart';
 
 class AddListingWizardPage extends StatefulWidget {
   const AddListingWizardPage({super.key});
@@ -10,13 +13,18 @@ class AddListingWizardPage extends StatefulWidget {
 
 class _AddListingWizardPageState extends State<AddListingWizardPage> {
   int _currentStep = 0;
-  
+  bool _isSubmitting = false;
+
   // Adatok a hirdetéshez
   String _selectedCategory = 'Ingatlan / Eladó-Kiadó';
   final TextEditingController _customCategoryController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController(); // Új mező a pontos címhez (duplikáció szűréshez)
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
+  // Feltöltött képek listája (itt bővíthető képfeltöltéssel)
+  final List<String> _uploadedImageUrls = [];
 
   final List<String> _predefinedCategories = [
     'Ingatlan / Eladó-Kiadó',
@@ -29,6 +37,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
   void dispose() {
     _customCategoryController.dispose();
     _titleController.dispose();
+    _addressController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -40,14 +49,102 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         _currentStep++;
       });
     } else {
-      // Utolsó lépés - Mentés / Véglegesítés
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hirdetés sikeresen elküldve moderálásra!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
+      // Utolsó lépés - Duplikáció ellenőrzés és Mentés
+      _submitListing();
+    }
+  }
+
+  Future<void> _submitListing() async {
+    final address = _addressController.text.trim();
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    // 1. Duplikáció ellenőrzés futtatása a ListingDuplicateService segítségével
+    final duplicateCheck = await ListingDuplicateService.checkDuplicate(
+      address: address,
+      imageUrls: _uploadedImageUrls,
+    );
+
+    if (duplicateCheck['isDuplicate'] == true) {
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      // Ha duplikációt talál, megállítjuk és figyelmeztetést dobunk
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF072A40),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Color(0xFF99FF99), width: 1.4),
+            ),
+            title: const Text('Hirdetési ütközés! ⚠️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: Text(
+              duplicateCheck['reason'] ?? 'Ez a hirdetés már létezik a rendszerben.',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF9F1C),
+                  foregroundColor: const Color(0xFF0F172A),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Rendben', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      }
+      return; // Megszakítjuk a mentést!
+    }
+
+    // 2. Ha minden tiszta, mentjük a Firestore-ba
+    try {
+      final category = _selectedCategory == 'Egyéb (Saját kategória megadása)'
+          ? _customCategoryController.text.trim()
+          : _selectedCategory;
+
+      await FirebaseFirestore.instance.collection('listings').add({
+        'partnerId': AuthState.currentUserId,
+        'category': category,
+        'title': _titleController.text.trim(),
+        'address': address,
+        'price': double.tryParse(_priceController.text.trim()) ?? 0.0,
+        'description': _descriptionController.text.trim(),
+        'imageUrls': _uploadedImageUrls,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'pending', // Moderálásra vár
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hirdetés sikeresen elküldve moderálásra! ✅'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hiba a mentés során: $e ❌'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -104,18 +201,24 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   OutlinedButton(
-                    onPressed: _previousStep,
+                    onPressed: _isSubmitting ? null : _previousStep,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF99FF99)),
                     ),
                     child: const Text('Vissza', style: TextStyle(color: Colors.white)),
                   ),
                   ElevatedButton(
-                    onPressed: _nextStep,
+                    onPressed: _isSubmitting ? null : _nextStep,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF9F1C),
                     ),
-                    child: Text(
+                    child: _isSubmitting
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                        : Text(
                       _currentStep == 4 ? 'Küldés' : 'Következő',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
@@ -132,7 +235,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
   Widget _buildCurrentStepContent() {
     switch (_currentStep) {
       case 0:
-        // 1. Lépés: Kategória kiválasztása vagy saját megadása
+      // 1. Lépés: Kategória kiválasztása
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -180,7 +283,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         );
 
       case 1:
-        // 2. Lépés: Cím megadása
+      // 2. Lépés: Cím és Pontos Cím (Duplikáció szűréshez)
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -197,11 +300,25 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
+            const SizedBox(height: 24),
+            const Text('Pontos Cím / Lokáció (Csalásvédelemhez)', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _addressController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Pl. Poseidonos Avenue 12, Paphos',
+                hintStyle: const TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: const Color(0xFF093753),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ],
         );
 
       case 2:
-        // 3. Lépés: Ár megadása
+      // 3. Lépés: Ár megadása
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -223,7 +340,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         );
 
       case 3:
-        // 4. Lépés: Leírás
+      // 4. Lépés: Leírás
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -245,7 +362,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         );
 
       case 4:
-        // 5. Lépés: Összegzés
+      // 5. Lépés: Összegzés
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -254,6 +371,8 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
             Text('Kategória: ${_selectedCategory == 'Egyéb (Saját kategória megadása)' ? _customCategoryController.text : _selectedCategory}', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Text('Cím: ${_titleController.text}', style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 8),
+            Text('Helyszín / Cím: ${_addressController.text}', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Text('Ár: ${_priceController.text} €', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
