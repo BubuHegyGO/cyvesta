@@ -1,34 +1,51 @@
-
 {
   "project_info": {
-    "project_number": "123456789012",
-    "firebase_url": "https://cyvesta-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_number": "34244333157",
     "project_id": "cyvesta-ad506",
-    "storage_bucket": "cyvesta-ad506.appspot.com"
+    "storage_bucket": "cyvesta-ad506.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+        "mobilesdk_app_id": "1:34244333157:android:ff24c3e13885c88d99c08c",
         "android_client_info": {
           "package_name": "com.cyvesta.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "34244333157-suj2kmtotskhp8vvjjft9rur8me5b91b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cyvesta.app",
+            "certificate_hash": "514ad508edf6e98d3f76a8f492813da8af17169f"
+          }
+        },
+        {
+          "client_id": "34244333157-s14rve53ehia74seen2ibo1ap61urdq6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyForDevelopmentAndTestingOnly12345"
+          "current_key": "AIzaSyA1FS2flPkMv4kBCaXMsNGOPu6F1IQ9O9M"
         }
       ],
       "services": {
-        "analytics_service": {
-          "status": 1
-        },
-        "app_invite_service": {
-          "status": 1
-        },
-        "ads_service": {
-          "status": 2
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "34244333157-s14rve53ehia74seen2ibo1ap61urdq6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "34244333157-cfqcgt8fuvgnagqa3o9rrmisa57s4lq8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.cyvesta.app"
+              }
+            }
+          ]
         }
       }
     }

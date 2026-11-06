@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 class PartnerVerificationService {
-  static Future verifyVatNumber(String vatNumber) async {
+  static Future<Map<String, dynamic>> verifyVatNumber(String vatNumber) async {
     try {
       String cleanVat = vatNumber.trim().toUpperCase();
       if (cleanVat.startsWith('CY')) {
@@ -44,7 +44,7 @@ class PartnerVerificationService {
     }
   }
 
-  static Future verifyHeNumber(String heNumber) async {
+  static Future<Map<String, dynamic>> verifyHeNumber(String heNumber) async {
     try {
       String cleanHe = heNumber.trim().toUpperCase();
       if (!cleanHe.startsWith('HE')) {

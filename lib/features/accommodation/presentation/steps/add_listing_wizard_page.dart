@@ -1,8 +1,15 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/widgets/cyvesta_scaffold.dart';
 import '../../../../core/services/listing_duplicate_service.dart';
 import '../../../../core/services/auth_state.dart';
+import '../../../../core/widgets/auth_dialogs.dart';
 
 class AddListingWizardPage extends StatefulWidget {
   const AddListingWizardPage({super.key});
@@ -12,8 +19,17 @@ class AddListingWizardPage extends StatefulWidget {
 }
 
 class _AddListingWizardPageState extends State<AddListingWizardPage> {
+  static const int _totalSteps = 7;
+  static const int _maxPhotos = 10;
+
   int _currentStep = 0;
   bool _isSubmitting = false;
+  String _uploadStatus = '';
+
+  final ImagePicker _picker = ImagePicker();
+  final List<XFile> _photos = [];
+  final List<Reference> _uploadedRefs = [];
+  LatLng? _pickedLocation;
 
   // Adatok a hirdetéshez
   String _selectedCategory = 'Ingatlan / Eladó-Kiadó';
@@ -43,8 +59,109 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
     super.dispose();
   }
 
+  double? _parsePrice() => double.tryParse(_priceController.text.trim().replaceAll(',', '.'));
+
+  String? _validateStep(int step) {
+    switch (step) {
+      case 0:
+        if (_selectedCategory == 'Egyéb (Saját kategória megadása)' && _customCategoryController.text.trim().isEmpty) {
+          return 'Add meg a saját kategóriádat.';
+        }
+        return null;
+      case 1:
+        if (_titleController.text.trim().isEmpty) return 'Add meg a hirdetés címét.';
+        if (_addressController.text.trim().isEmpty) return 'Add meg a pontos címet.';
+        return null;
+      case 2:
+        final price = _parsePrice();
+        if (price == null || price < 0) return 'Adj meg érvényes árat (szám, pl. 1200).';
+        return null;
+      case 4:
+        if (_pickedLocation == null) return 'Jelöld meg a helyszínt a térképen.';
+        return null;
+      case 5:
+        if (_photos.isEmpty) return 'Tölts fel legalább 1 fényképet.';
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _pickPhotos() async {
+    final remaining = _maxPhotos - _photos.length;
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum 10 db fotó tölthető fel!'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    try {
+      final picked = await _picker.pickMultiImage(imageQuality: 80, maxWidth: 1600, maxHeight: 1600);
+      if (picked.isEmpty || !mounted) return;
+      setState(() => _photos.addAll(picked.take(remaining)));
+      if (picked.length > remaining) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Elérted a maximum 10 db-os fotókorlátot.'), backgroundColor: Colors.orange),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('A fotók kiválasztása nem sikerült: $e'), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
+  void _removePhoto(int index) {
+    setState(() => _photos.removeAt(index));
+  }
+
+  /// Feltölti a kiválasztott fotókat a Firebase Storage-ba, és visszaadja a letöltési címeket.
+  /// Hiba esetén a már feltöltött fájlokat törli.
+  Future<List<String>> _uploadPhotos(String uid) async {
+    final storage = FirebaseStorage.instance;
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final urls = <String>[];
+    _uploadedRefs.clear();
+
+    try {
+      for (var i = 0; i < _photos.length; i++) {
+        if (mounted) {
+          setState(() => _uploadStatus = 'Fotók feltöltése (${i + 1}/${_photos.length})...');
+        }
+        final path = _photos[i].path;
+        final dot = path.lastIndexOf('.');
+        var ext = dot >= 0 ? path.substring(dot + 1).toLowerCase() : 'jpg';
+        if (!const ['jpg', 'jpeg', 'png', 'webp', 'heic'].contains(ext)) ext = 'jpg';
+        final contentType = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/$ext';
+
+        final ref = storage.ref('listings/$uid/${stamp}_$i.$ext');
+        await ref.putFile(File(path), SettableMetadata(contentType: contentType));
+        _uploadedRefs.add(ref);
+        urls.add(await ref.getDownloadURL());
+      }
+    } catch (e) {
+      for (final r in _uploadedRefs) {
+        try {
+          await r.delete();
+        } catch (_) {}
+      }
+      _uploadedRefs.clear();
+      rethrow;
+    }
+    return urls;
+  }
+
   void _nextStep() {
-    if (_currentStep < 4) {
+    final error = _validateStep(_currentStep);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error ⚠️'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    if (_currentStep < _totalSteps - 1) {
       setState(() {
         _currentStep++;
       });
@@ -55,6 +172,30 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
   }
 
   Future<void> _submitListing() async {
+    final uid = AuthState.currentUserId;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hirdetés feladásához be kell jelentkezned! ⚠️')),
+      );
+      return;
+    }
+
+    // Hirdetést csak jóváhagyott céges partner vagy admin adhat fel.
+    await AuthState.refreshRoles();
+    if (!mounted) return;
+
+    final isAdmin = AuthState.isAdmin.value;
+    if (!isAdmin && !AuthState.isPartner.value) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hirdetést csak jóváhagyott céges partner adhat fel. ⚠️')),
+      );
+      return;
+    }
+
+    // Jelszavas partner fiókkal csak megerősített e-mail címmel lehet hirdetést feladni (az adminra ez nem vonatkozik).
+    if (!isAdmin && !await ensureEmailVerified(context)) return;
+    if (!mounted) return;
+
     final address = _addressController.text.trim();
 
     setState(() {
@@ -109,16 +250,23 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
           ? _customCategoryController.text.trim()
           : _selectedCategory;
 
+      // Fotók feltöltése a Storage-ba (a letöltési címek kerülnek a hirdetésbe)
+      final imageUrls = await _uploadPhotos(uid);
+      final location = _pickedLocation;
+
       await FirebaseFirestore.instance.collection('listings').add({
-        'partnerId': AuthState.currentUserId,
+        'partnerId': uid,
         'category': category,
         'title': _titleController.text.trim(),
         'address': address,
-        'price': double.tryParse(_priceController.text.trim()) ?? 0.0,
+        'addressNormalized': ListingDuplicateService.normalizeAddress(address),
+        'price': _parsePrice() ?? 0.0,
+        if (location != null) 'latitude': location.latitude,
+        if (location != null) 'longitude': location.longitude,
         'description': _descriptionController.text.trim(),
-        'imageUrls': _uploadedImageUrls,
+        'imageUrls': imageUrls,
         'createdAt': FieldValue.serverTimestamp(),
-        'status': 'pending', // Moderálásra vár
+        'status': isAdmin ? 'approved' : 'pending', // Az admin hirdetése azonnal élesedik, a többi moderálásra vár
       });
 
       if (mounted) {
@@ -131,6 +279,14 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         Navigator.pop(context);
       }
     } catch (e) {
+      // Ha a hirdetés mentése nem sikerült, a már feltöltött fotókat is töröljük.
+      for (final r in _uploadedRefs) {
+        try {
+          await r.delete();
+        } catch (_) {}
+      }
+      _uploadedRefs.clear();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -143,6 +299,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
+          _uploadStatus = '';
         });
       }
     }
@@ -171,7 +328,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Hirdetés feladása (${_currentStep + 1}/5)',
+                    'Hirdetés feladása (${_currentStep + 1}/$_totalSteps)',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -193,6 +350,12 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                 child: _buildCurrentStepContent(),
               ),
             ),
+
+            if (_isSubmitting && _uploadStatus.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(_uploadStatus, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ),
 
             // Navigációs gombok (Előző / Következő)
             Padding(
@@ -219,7 +382,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                         : Text(
-                      _currentStep == 4 ? 'Küldés' : 'Következő',
+                      _currentStep == _totalSteps - 1 ? 'Küldés' : 'Következő',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -229,6 +392,117 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationStep() {
+    final picked = _pickedLocation;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Helyszín a térképen', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        const Text(
+          'Koppints a térképre, hogy megjelöld az ingatlan vagy a vállalkozás pontos helyét.',
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            height: 380,
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: picked ?? const LatLng(35.0, 33.2),
+                zoom: picked != null ? 14 : 8,
+              ),
+              markers: picked == null
+                  ? <Marker>{}
+                  : <Marker>{Marker(markerId: const MarkerId('listing'), position: picked)},
+              onTap: (point) => setState(() => _pickedLocation = point),
+              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+              },
+              zoomControlsEnabled: true,
+              myLocationButtonEnabled: false,
+              mapToolbarEnabled: false,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          picked == null
+              ? 'Még nincs megjelölt helyszín.'
+              : 'Kijelölve: ${picked.latitude.toStringAsFixed(5)}, ${picked.longitude.toStringAsFixed(5)}',
+          style: TextStyle(color: picked == null ? Colors.orangeAccent : const Color(0xFF99FF99), fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotosStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Fényképek feltöltése (max. 10 db)', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Text('Kiválasztva: ${_photos.length} / $_maxPhotos', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: _photos.length + (_photos.length < _maxPhotos ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == _photos.length) {
+              return GestureDetector(
+                onTap: _pickPhotos,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF093753),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF99FF99), width: 1.5),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_a_photo, color: Color(0xFFFF9F1C), size: 30),
+                      SizedBox(height: 4),
+                      Text('Hozzáadás', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(_photos[index].path), fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => _removePhoto(index),
+                    child: Container(
+                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                      padding: const EdgeInsets.all(4),
+                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -362,7 +636,15 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         );
 
       case 4:
-      // 5. Lépés: Összegzés
+      // 5. Lépés: Helyszín a térképen
+        return _buildLocationStep();
+
+      case 5:
+      // 6. Lépés: Fényképek
+        return _buildPhotosStep();
+
+      case 6:
+      // 7. Lépés: Összegzés
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -377,6 +659,15 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
             Text('Ár: ${_priceController.text} €', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Text('Leírás: ${_descriptionController.text}', style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 8),
+            Text(
+              _pickedLocation == null
+                  ? 'Térképes helyszín: nincs'
+                  : 'Térképes helyszín: ${_pickedLocation!.latitude.toStringAsFixed(5)}, ${_pickedLocation!.longitude.toStringAsFixed(5)}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            Text('Fotók: ${_photos.length} db', style: const TextStyle(color: Colors.white70)),
           ],
         );
 

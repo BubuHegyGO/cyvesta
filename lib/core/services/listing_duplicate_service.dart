@@ -3,47 +3,59 @@ import 'package:flutter/foundation.dart';
 import 'auth_state.dart';
 
 class ListingDuplicateService {
-  /// Ellenőrzi, hogy a megadott cím vagy képek alapján létezik-e már aktív hirdetés más partnernél.
-  static Future> checkDuplicate({
+  /// Egységes alak az összehasonlításhoz: kisbetű, felesleges szóközök nélkül.
+  static String normalizeAddress(String address) {
+    return address.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  /// Ellenőrzi, hogy a megadott cím vagy képek alapján létezik-e már jóváhagyott hirdetés más partnernél.
+  ///
+  /// Fontos: ez csak kliensoldali segédellenőrzés. A kliens a Security Rules miatt csak a jóváhagyott
+  /// hirdetéseket látja, a függőben lévőket nem, ezért a teljes védelmet a moderáció (és később egy
+  /// szerveroldali Cloud Function) adja.
+  static Future<Map<String, dynamic>> checkDuplicate({
     required String address,
     required List<String> imageUrls,
   }) async {
-    try {
-      final trimmedAddress = address.trim().toLowerCase();
-      if (trimmedAddress.isEmpty) {
-        return {'isDuplicate': false};
-      }
+    final normalized = normalizeAddress(address);
+    if (normalized.isEmpty) {
+      return {'isDuplicate': false};
+    }
 
-      // Lekérdezzük a Firestore-ból a meglévő hirdetéseket
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('listings')
+    final uid = AuthState.currentUserId;
+    final listings = FirebaseFirestore.instance.collection('listings');
+
+    try {
+      // 1. Cím egyezés (indexelt lekérdezés, nem a teljes gyűjteményt töltjük le)
+      final byAddress = await listings
+          .where('status', isEqualTo: 'approved')
+          .where('addressNormalized', isEqualTo: normalized)
+          .limit(10)
           .get();
 
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data();
-        final existingAddress = (data['address'] ?? '').toString().trim().toLowerCase();
-        final existingPartnerId = data['partnerId'] ?? '';
-        final List<dynamic> existingImages = data['imageUrls'] ?? [];
+      for (final doc in byAddress.docs) {
+        if (doc.data()['partnerId'] != uid) {
+          return {
+            'isDuplicate': true,
+            'reason': 'Ezzel a pontos címmel ($address) már létezik hirdetés egy másik partner nevén! ⚠️',
+          };
+        }
+      }
 
-        // 1. Cím egyezés vizsgálata (ha nem a saját hirdetésünket szerkesztjük)
-        if (existingAddress.isNotEmpty && existingAddress == trimmedAddress) {
-          if (existingPartnerId != AuthState.currentUserId) {
+      // 2. Kép-egyezés (ha pontosan ugyanazokat a fotókat töltik fel)
+      if (imageUrls.isNotEmpty) {
+        final byImage = await listings
+            .where('status', isEqualTo: 'approved')
+            .where('imageUrls', arrayContainsAny: imageUrls.take(30).toList())
+            .limit(10)
+            .get();
+
+        for (final doc in byImage.docs) {
+          if (doc.data()['partnerId'] != uid) {
             return {
               'isDuplicate': true,
-              'reason': 'Ezzel a pontos címmel ($address) már létezik hirdetés egy másik partner nevén! ⚠️',
+              'reason': 'A feltöltött képek egyike már szerepel egy másik hirdetésben! Tilos más fotóit felhasználni. 🚫',
             };
-          }
-        }
-
-        // 2. Kép-egyezés vizsgálata (ha pontosan ugyanazokat a fotókat töltik fel)
-        for (var newImg in imageUrls) {
-          if (existingImages.contains(newImg)) {
-            if (existingPartnerId != AuthState.currentUserId) {
-              return {
-                'isDuplicate': true,
-                'reason': 'A feltöltött képek egyike már szerepel egy másik hirdetésben! Tilos más fotóit felhasználni. 🚫',
-              };
-            }
           }
         }
       }
@@ -51,7 +63,7 @@ class ListingDuplicateService {
       return {'isDuplicate': false};
     } catch (e) {
       debugPrint('Hiba a duplikáció ellenőrzésekor: $e');
-      return {'isDuplicate': false}; // Hiba esetén engedjük, de logoljuk
+      return {'isDuplicate': false}; // Hiba esetén engedjük, a moderáció úgyis átnézi
     }
   }
 }

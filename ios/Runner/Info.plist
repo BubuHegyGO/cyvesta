@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
@@ -47,12 +47,9 @@
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 
-    <!-- Hálózati elérés engedélyezése (Mobilnet / HTTP/HTTPS védelem) -->
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true/>
-    </dict>
+    <!-- Google Maps API Kulcs (Kötelező az iOS térkép összeomlás ellen) -->
+    <key>GoogleMapsApiKey</key>
+    <string>AIzaSyD9DSJaWVuc-SyOVkem_JSwibtgvB1-Dz0</string>
 
     <!-- Helymeghatározási engedélyek (GPS) -->
     <key>NSLocationWhenInUseUsageDescription</key>
@@ -66,10 +63,29 @@
     <key>NSPhotoLibraryUsageDescription</key>
     <string>CYVESTA requires gallery access to upload photos for property listings and services.</string>
 
-    <!-- Telefonhívás indítása funkcióhoz -->
+    <!-- Facebook Login Konfiguráció -->
+    <key>FacebookAppID</key>
+    <string>1512081950765550</string>
+    <key>FacebookClientToken</key>
+    <string>7f73c4f579a41baa8486b67f02f746ba</string>
+    <key>FacebookDisplayName</key>
+    <string>Cyvesta App</string>
+
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>fb1512081950765550</string>
+            </array>
+        </dict>
+    </array>
+
     <key>LSApplicationQueriesSchemes</key>
     <array>
         <string>tel</string>
+        <string>fbapi</string>
+        <string>fb-messenger-share-api</string>
     </array>
 </dict>
 </plist>

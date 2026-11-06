@@ -6,6 +6,7 @@ import '../../core/localization/app_language.dart';
 import '../../core/services/auth_state.dart';
 import '../../core/services/data_service.dart';
 import '../../core/services/stripe_service.dart';
+import '../../core/widgets/auth_dialogs.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
 import '../accommodation/presentation/accommodation_list_page.dart';
@@ -15,9 +16,10 @@ import '../experiences/presentation/experience_detail_page.dart';
 import '../faq/faq_page.dart';
 import '../gastronomy/gastronomy_page.dart';
 import '../gastronomy/presentation/gastronomy_detail_page.dart';
-import '../map/map_page.dart';
+import 'firestore_cyprus_map.dart'; // <--- BEIMPORTÁLVA A FIRESTORE TÉRKÉP!
 import '../profile/host_packages_page.dart';
 import '../profile/host_registration_page.dart';
+import '../profile/profile_page.dart';
 import '../transfer/transfer_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -68,94 +70,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToMapForRegion(String regionKey) {
-    LatLng targetCoord;
-    String regionTitle;
-
-    switch (regionKey) {
-      case 'paphos':
-        targetCoord = const LatLng(34.7754, 32.4245);
-        regionTitle = 'Paphos & Coral Bay';
-        break;
-      case 'kyrenia':
-        targetCoord = const LatLng(35.3375, 33.3172);
-        regionTitle = 'Kyrenia (Girne)';
-        break;
-      case 'limassol':
-        targetCoord = const LatLng(34.7071, 33.0226);
-        regionTitle = 'Limassol & Akrotiri';
-        break;
-      case 'larnaca':
-        targetCoord = const LatLng(34.9823, 33.6339);
-        regionTitle = 'Larnaca & Ayia Napa';
-        break;
-      case 'famagusta':
-        targetCoord = const LatLng(35.1264, 33.9423);
-        regionTitle = 'Famagusta & Long Beach';
-        break;
-      case 'all':
-      default:
-        targetCoord = const LatLng(34.9228, 33.6233);
-        regionTitle = 'Cyprus (Összes régió)';
-        break;
-    }
+    // Ha 'all', akkor null-t küldünk, így minden hirdetés látszik a Firestore-ból
+    final regionFilter = regionKey == 'all' ? null : regionKey;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MapPage(
-          initialTarget: targetCoord,
-          regionName: regionTitle,
-        ),
+        builder: (_) => FirestoreCyprusMap(selectedRegion: regionFilter),
       ),
     );
   }
 
-  void _showAdminLoginDialog(BuildContext context) {
-    final passwordController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF072A40),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: mintGreenBorder, width: 1.4),
-        ),
-        title: const Text('Admin Belépés (Bubu) 🛡️', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: passwordController,
-          obscureText: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Add meg a jelszót (1234)',
-            hintStyle: const TextStyle(color: Colors.white54),
-            filled: true,
-            fillColor: const Color(0xFF093753),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: mintGreenBorder)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Mégse', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: sunnyGold, foregroundColor: textDark),
-            onPressed: () {
-              if (passwordController.text.trim() == '1234') {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminModerationPage()));
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Hibás admin jelszó! ⚠️', style: TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
-                );
-              }
-            },
-            child: const Text('Belépés', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+  /// Az admin felület csak a Firestore `admins` gyűjteményben szereplő felhasználóknak nyílik meg.
+  /// Más felhasználónak nem történik semmi, így nem is látszik, hogy van ilyen terület.
+  void _openAdminArea(BuildContext context) {
+    if (!AuthState.isAdmin.value) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminModerationPage()));
   }
 
   void _handleSocialAuth({
@@ -163,20 +93,8 @@ class _HomePageState extends State<HomePage> {
     required BuildContext modalContext,
     required String provider,
     required bool isRegisterMode,
-    required bool isPartnerMode,
     required bool acceptedTerms,
   }) async {
-    if (isPartnerMode) {
-      Navigator.pop(modalContext);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HostRegistrationPage(),
-        ),
-      );
-      return;
-    }
-
     if (isRegisterMode && !acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('A regisztrációhoz el kell fogadni az ÁSZF-et és a GDPR nyilatkozatot! ⚠️')),
@@ -184,13 +102,33 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    AuthState.loginWithProvider(provider);
-    Navigator.pop(modalContext);
+    final AuthResult result;
+    switch (provider) {
+      case 'Apple':
+        result = await AuthState.loginWithApple();
+        break;
+      case 'Google':
+        result = await AuthState.loginWithGoogle();
+        break;
+      case 'Facebook':
+        result = await AuthState.loginWithFacebook();
+        break;
+      default:
+        result = const AuthResult.error('Ismeretlen belépési mód.');
+    }
+
+    if (result.success) {
+      if (modalContext.mounted) Navigator.pop(modalContext);
+    } else if (!result.cancelled && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message ?? 'Hiba történt a(z) $provider bejelentkezés során! ⚠️')),
+      );
+    }
   }
 
   void _showAuthModal(BuildContext context) {
     bool isRegisterMode = false;
-    bool isPartnerMode = false; // false = Vendég, true = Partner
+    bool isPartnerMode = false;
     bool acceptedTerms = false;
 
     final emailController = TextEditingController();
@@ -278,10 +216,6 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-
-                      // ==========================================
-                      // CSAK KÉT GOMB FELÜL: VENDÉG ÉS PARTNER
-                      // ==========================================
                       Row(
                         children: [
                           Expanded(
@@ -315,7 +249,7 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const HostRegistrationPage(),
+                                    builder: (_) => const ProfilePage(),
                                   ),
                                 );
                               },
@@ -341,29 +275,39 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       const SizedBox(height: 18),
-
                       TextField(
                         controller: nameController,
                         style: const TextStyle(color: Colors.white, fontSize: 13),
                         decoration: _authInputDec(AppLanguage.tr('auth_name_hint'), Icons.person_outline),
                       ),
                       const SizedBox(height: 10),
-
                       TextField(
                         controller: emailController,
                         style: const TextStyle(color: Colors.white, fontSize: 13),
                         decoration: _authInputDec('${AppLanguage.tr('auth_email_hint')} *', Icons.email_outlined),
                       ),
                       const SizedBox(height: 10),
-
                       TextField(
                         controller: passwordController,
                         obscureText: true,
                         style: const TextStyle(color: Colors.white, fontSize: 13),
                         decoration: _authInputDec('${AppLanguage.tr('auth_password_hint')} *', Icons.lock_outline),
                       ),
+                      if (!isRegisterMode)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => showForgotPasswordDialog(
+                              ctx,
+                              initialEmail: emailController.text.trim(),
+                            ),
+                            child: const Text(
+                              'Elfelejtett jelszó?',
+                              style: TextStyle(color: mintGreenBorder, fontSize: 11.5, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 10),
-
                       if (isRegisterMode) ...[
                         Row(
                           children: [
@@ -398,7 +342,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 10),
                       ],
-
                       SizedBox(
                         width: double.infinity,
                         height: 44,
@@ -428,34 +371,45 @@ class _HomePageState extends State<HomePage> {
                                 return;
                               }
 
-                              final successReg = await AuthState.registerWithEmail(
+                              final resultReg = await AuthState.registerWithEmail(
                                 email: email,
                                 password: password,
                                 name: name.isNotEmpty ? name : email.split('@').first,
                                 asPartner: false,
                               );
 
-                              if (successReg) {
+                              if (resultReg.success) {
                                 if (ctx.mounted) Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        resultReg.verificationEmailSent
+                                            ? 'Sikeres regisztráció! Visszaigazoló e-mailt küldtünk a megadott címre. ✅'
+                                            : 'Sikeres regisztráció! ✅',
+                                      ),
+                                    ),
+                                  );
+                                }
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Hiba történt a regisztráció során! Ellenőrizze az adatokat.')),
+                                    SnackBar(content: Text(resultReg.message ?? 'Hiba történt a regisztráció során! Ellenőrizd az adatokat.')),
                                   );
                                 }
                               }
                             } else {
-                              final successLogin = await AuthState.loginWithEmail(
+                              final resultLogin = await AuthState.loginWithEmail(
                                 email: email,
                                 password: password,
                               );
 
-                              if (successLogin) {
+                              if (resultLogin.success) {
                                 if (ctx.mounted) Navigator.pop(ctx);
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Hibás e-mail vagy jelszó!')),
+                                    SnackBar(content: Text(resultLogin.message ?? 'Hibás e-mail vagy jelszó!')),
                                   );
                                 }
                               }
@@ -468,63 +422,59 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 14),
-
-                      // Közösségi bejelentkezés (csak vendég módban)
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: Colors.white24)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text(AppLanguage.tr('auth_or_social'), style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                          ),
-                          const Expanded(child: Divider(color: Colors.white24)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSocialBtn('Google', Icons.g_mobiledata_rounded, Colors.redAccent, () {
-                              _handleSocialAuth(
-                                context: context,
-                                modalContext: ctx,
-                                provider: 'Google',
-                                isRegisterMode: isRegisterMode,
-                                isPartnerMode: isPartnerMode,
-                                acceptedTerms: acceptedTerms,
-                              );
-                            }),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildSocialBtn('Apple', Icons.apple_rounded, Colors.white, () {
-                              _handleSocialAuth(
-                                context: context,
-                                modalContext: ctx,
-                                provider: 'Apple',
-                                isRegisterMode: isRegisterMode,
-                                isPartnerMode: isPartnerMode,
-                                acceptedTerms: acceptedTerms,
-                              );
-                            }),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildSocialBtn('Facebook', Icons.facebook_rounded, Colors.blueAccent, () {
-                              _handleSocialAuth(
-                                context: context,
-                                modalContext: ctx,
-                                provider: 'Facebook',
-                                isRegisterMode: isRegisterMode,
-                                isPartnerMode: isPartnerMode,
-                                acceptedTerms: acceptedTerms,
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
+                      if (!isPartnerMode) ...[
+                        Row(
+                          children: [
+                            const Expanded(child: Divider(color: Colors.white24)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(AppLanguage.tr('auth_or_social'), style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                            ),
+                            const Expanded(child: Divider(color: Colors.white24)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildSocialBtn('Google', Icons.g_mobiledata_rounded, Colors.redAccent, () {
+                                _handleSocialAuth(
+                                  context: context,
+                                  modalContext: ctx,
+                                  provider: 'Google',
+                                  isRegisterMode: isRegisterMode,
+                                  acceptedTerms: acceptedTerms,
+                                );
+                              }),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildSocialBtn('Apple', Icons.apple_rounded, Colors.white, () {
+                                _handleSocialAuth(
+                                  context: context,
+                                  modalContext: ctx,
+                                  provider: 'Apple',
+                                  isRegisterMode: isRegisterMode,
+                                  acceptedTerms: acceptedTerms,
+                                );
+                              }),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildSocialBtn('Facebook', Icons.facebook_rounded, Colors.blueAccent, () {
+                                _handleSocialAuth(
+                                  context: context,
+                                  modalContext: ctx,
+                                  provider: 'Facebook',
+                                  isRegisterMode: isRegisterMode,
+                                  acceptedTerms: acceptedTerms,
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       TextButton(
                         onPressed: () => setModalState(() => isRegisterMode = !isRegisterMode),
                         child: Text(
@@ -608,7 +558,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const Divider(color: Colors.white12, height: 12),
             const SizedBox(height: 8),
-
             GestureDetector(
               onTap: () {
                 Navigator.pop(ctx);
@@ -637,7 +586,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 12),
-
             GestureDetector(
               onTap: () {
                 Navigator.pop(ctx);
@@ -722,7 +670,8 @@ class _HomePageState extends State<HomePage> {
               child: ValueListenableBuilder<List<String>>(
                 valueListenable: DataService.customCategories,
                 builder: (context, customCats, child) {
-                  final allServices = List<Map<String, dynamic>>.from(baseServices);
+                  final allServices = List<dynamic>.from(baseServices);
+
 
                   for (var customCat in customCats) {
                     allServices.add({
@@ -872,7 +821,7 @@ class _HomePageState extends State<HomePage> {
                       Row(
                         children: [
                           GestureDetector(
-                            onLongPress: () => _showAdminLoginDialog(context),
+                            onLongPress: () => _openAdminArea(context),
                             child: IconButton(
                               icon: const Icon(Icons.info_outline_rounded, color: sunnyGold, size: 23),
                               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FaqPage())),
@@ -891,13 +840,11 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 4),
-
                   Text(
                     AppLanguage.tr('slogan'),
                     style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 0.2),
                   ),
                   const SizedBox(height: 12),
-
                   Row(
                     children: [
                       Expanded(
@@ -954,7 +901,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-
                   Row(
                     children: [
                       Expanded(child: _buildCategorySquare(AppLanguage.tr('cat_accommodations'), Icons.apartment_rounded, () => _showPropertyTypeModal(context))),
@@ -967,7 +913,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-
                   GestureDetector(
                     onTap: () => _showNearbyServicesModal(context),
                     child: Container(
@@ -989,7 +934,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
                   ValueListenableBuilder(
                     valueListenable: DataService.accommodations,
                     builder: (context, allItems, child) {
@@ -1136,7 +1080,6 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                   const SizedBox(height: 14),
-
                   ValueListenableBuilder<bool>(
                     valueListenable: AuthState.isLoggedIn,
                     builder: (context, loggedIn, child) {

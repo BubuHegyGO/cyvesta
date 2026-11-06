@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/localization/app_language.dart';
+import '../../core/widgets/auth_dialogs.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
+import '../accommodation/presentation/steps/add_listing_wizard_page.dart';
 import '../../core/services/auth_state.dart';
 import '../../core/services/data_service.dart';
 import '../../core/services/partner_verification_service.dart';
@@ -114,17 +116,38 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
+    if (_isRegisterMode && _isPartnerMode) {
+      final regNumber = _partnerIdentifierType == 'HE' ? _licenseController.text.trim() : _taxController.text.trim();
+      if (regNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Partnerként a cégjegyzékszám (HE) vagy az adószám (VAT) megadása kötelező! ⚠️'), backgroundColor: Colors.redAccent),
+        );
+        return;
+      }
+    }
+
     if (_isRegisterMode) {
-      final success = await AuthState.registerWithEmail(
+      final result = await AuthState.registerWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         name: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Felhasználó',
         asPartner: _isPartnerMode,
       );
 
-      if (success && mounted) {
+      if (result.success && mounted) {
         if (_isPartnerMode && _selectedCategoryKey == 'cat_partner_other' && _customCategoryController.text.trim().isNotEmpty) {
           DataService.addCustomCategory(_customCategoryController.text.trim());
+        }
+
+        // Céges partner jelentkezés mentése (adminisztrátori jóváhagyásra vár)
+        AuthResult? partnerResult;
+        if (_isPartnerMode) {
+          partnerResult = await AuthState.submitPartnerApplication(
+            companyName: _businessNameController.text.trim(),
+            regType: _partnerIdentifierType,
+            regNumber: _partnerIdentifierType == 'HE' ? _licenseController.text.trim() : _taxController.text.trim(),
+          );
+          if (!mounted) return;
         }
 
         showDialog(
@@ -136,9 +159,15 @@ class _ProfilePageState extends State<ProfilePage> {
               side: const BorderSide(color: mintGreenBorder, width: 1.4),
             ),
             title: const Text('Sikeres Regisztráció! 🎉', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            content: const Text(
-              'A regisztrációt rögzítettük. Az automatikus visszaigazoló e-mailt elküldtük a megadott címre.',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
+            content: Text(
+              _isPartnerMode
+                  ? (partnerResult?.success == true
+                  ? 'A partner jelentkezésedet rögzítettük. Hirdetést az adminisztrátori jóváhagyás után adhatsz fel. Az e-mail-megerősítéshez kattints a levélben kapott linkre.'
+                  : (partnerResult?.message ?? 'A fiók létrejött, de a partner jelentkezés mentése nem sikerült.'))
+                  : (result.verificationEmailSent
+                  ? 'A regisztrációt rögzítettük. Visszaigazoló e-mailt küldtünk a megadott címre, kattints a benne lévő linkre.'
+                  : 'A regisztrációt rögzítettük, de a visszaigazoló e-mail küldése nem sikerült.'),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
             actions: [
               ElevatedButton(
@@ -150,24 +179,88 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
         setState(() {});
+      } else if (!result.success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message ?? 'Hiba történt a regisztráció során! ⚠️'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     } else {
-      final success = await AuthState.loginWithEmail(
+      final result = await AuthState.loginWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      if (success && mounted) {
+      if (result.success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sikeres bejelentkezés! ✅'), backgroundColor: Colors.green),
         );
         setState(() {});
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Helytelen e-mail vagy jelszó! ⚠️'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(result.message ?? 'Helytelen e-mail vagy jelszó! ⚠️'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
+  }
+
+  /// Hirdetésfeladás: csak jóváhagyott partnernek és adminnak jelenik meg a gomb, mindenki más tájékoztatást kap.
+  Widget _buildListingAccess() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([AuthState.isAdmin, AuthState.partnerStatus]),
+      builder: (context, _) {
+        final isAdmin = AuthState.isAdmin.value;
+        final status = AuthState.partnerStatus.value;
+
+        if (isAdmin || status == 'approved') {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: sunnyGold,
+                  foregroundColor: textDark,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.add_home_work_rounded, size: 18),
+                label: const Text('Új hirdetés feladása', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddListingWizardPage()),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final String info;
+        switch (status) {
+          case 'pending':
+            info = 'A partner jelentkezésed jóváhagyásra vár. Hirdetést a jóváhagyás után adhatsz fel.';
+            break;
+          case 'rejected':
+            info = 'A partner jelentkezésedet elutasították. Kérdés esetén keresd az ügyfélszolgálatot.';
+            break;
+          default:
+            info = 'Hirdetést csak jóváhagyott céges partner adhat fel.';
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            info,
+            style: TextStyle(color: textDark.withValues(alpha: 0.85), fontSize: 12.5),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -249,6 +342,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ],
                           ),
                           const SizedBox(height: 16),
+                          _buildListingAccess(),
                           SizedBox(
                             width: double.infinity,
                             height: 44,
@@ -432,6 +526,20 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: _inputDec(AppLanguage.tr('auth_password_hint'), Icons.lock_outline),
                     ),
+                    if (!_isRegisterMode)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => showForgotPasswordDialog(
+                            context,
+                            initialEmail: _emailController.text.trim(),
+                          ),
+                          child: const Text(
+                            'Elfelejtett jelszó?',
+                            style: TextStyle(color: mintGreenBorder, fontSize: 11.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 10),
 
                     if (_isRegisterMode && _isPartnerMode) ...[

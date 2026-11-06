@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/localization/app_language.dart';
+import 'core/services/auth_state.dart';
 import 'features/home/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await Firebase.initializeApp();
+    // Munkamenet-figyelő indítása: újraindítás után is megmarad a bejelentkezés
+    AuthState.init();
   } catch (e) {
     debugPrint('Firebase init warning: $e');
   }
