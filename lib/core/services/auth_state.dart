@@ -43,6 +43,9 @@ class AuthState {
   /// A partner-jelentkezés állapota: none, pending, approved vagy rejected.
   static final ValueNotifier<String> partnerStatus = ValueNotifier<String>('none');
 
+  /// Az automatikus ellenőrzés (VIES / admin) üzenete a partner-jelentkezéshez.
+  static final ValueNotifier<String> partnerNote = ValueNotifier<String>('');
+
   /// Igaz, ha a bejelentkezett felhasználónak van dokumentuma az `admins/{uid}` gyűjteményben.
   /// A dokumentumot csak a Firebase konzolban lehet létrehozni (a Security Rules tiltja az appból).
   static final ValueNotifier<bool> isAdmin = ValueNotifier<bool>(false);
@@ -55,6 +58,7 @@ class AuthState {
       isAdmin.value = false;
       isPartner.value = false;
       partnerStatus.value = 'none';
+      partnerNote.value = '';
       return;
     }
 
@@ -74,6 +78,8 @@ class AuthState {
       final String status = rawStatus is String ? rawStatus : 'none';
       partnerStatus.value = status;
       isPartner.value = status == 'approved';
+      final verification = results[1].data()?['verification'];
+      partnerNote.value = (verification is Map ? verification['reason']?.toString() : null) ?? '';
     } catch (e) {
       debugPrint('Szerepkör ellenőrzési hiba: $e');
       if (_auth.currentUser?.uid == uid) {
@@ -324,7 +330,7 @@ class AuthState {
   static Future<AuthResult> loginWithGoogle() async {
     try {
       final UserCredential userCredential =
-      await _auth.signInWithProvider(GoogleAuthProvider());
+          await _auth.signInWithProvider(GoogleAuthProvider());
 
       isLoggedIn.value = true;
       userEmail.value = userCredential.user?.email ?? '';
@@ -353,7 +359,7 @@ class AuthState {
       }
 
       final OAuthCredential credential =
-      FacebookAuthProvider.credential(result.accessToken!.tokenString);
+          FacebookAuthProvider.credential(result.accessToken!.tokenString);
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
 
       isLoggedIn.value = true;

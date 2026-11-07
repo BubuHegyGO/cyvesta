@@ -9,6 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/widgets/cyvesta_scaffold.dart';
 import '../../../../core/services/listing_duplicate_service.dart';
 import '../../../../core/services/auth_state.dart';
+import '../../../../core/services/ical_service.dart';
+import 'listing_details_form.dart';
 import '../../../../core/widgets/auth_dialogs.dart';
 
 class AddListingWizardPage extends StatefulWidget {
@@ -19,7 +21,7 @@ class AddListingWizardPage extends StatefulWidget {
 }
 
 class _AddListingWizardPageState extends State<AddListingWizardPage> {
-  static const int _totalSteps = 7;
+  static const int _totalSteps = 8;
   static const int _maxPhotos = 10;
 
   int _currentStep = 0;
@@ -33,10 +35,19 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
 
   // Adatok a hirdetéshez
   String _selectedCategory = 'Ingatlan / Eladó-Kiadó';
+  final ListingDetails _details = ListingDetails();
+  String _listingType = 'rent'; // 'rent' | 'sale'
+  String _priceUnit = 'night'; // 'night' | 'month' (csak kiadásnál)
+
+  bool get _isPropertyCategory => _selectedCategory == 'Ingatlan / Eladó-Kiadó';
+  bool get _isLodgingCategory => _selectedCategory == 'Szálláshely / Hotel';
+  bool get _hasListingType => _isPropertyCategory || _isLodgingCategory;
+  bool get _effectiveIsRent => _isLodgingCategory || (_isPropertyCategory && _listingType == 'rent');
   final TextEditingController _customCategoryController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _addressController = TextEditingController(); // Új mező a pontos címhez (duplikáció szűréshez)
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
   // Feltöltött képek listája (itt bővíthető képfeltöltéssel)
@@ -55,8 +66,17 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
     _titleController.dispose();
     _addressController.dispose();
     _priceController.dispose();
+    _phoneController.dispose();
     _descriptionController.dispose();
+    _details.dispose();
     super.dispose();
+  }
+
+  /// Nemzetközi formátumra hozza a telefonszámot (+35799123456); érvénytelen esetén null.
+  String? _normalizedPhone() {
+    var p = _phoneController.text.trim().replaceAll(RegExp(r'[\s\-().]'), '');
+    if (p.startsWith('00')) p = '+${p.substring(2)}';
+    return RegExp(r'^\+[0-9]{8,15}$').hasMatch(p) ? p : null;
   }
 
   double? _parsePrice() => double.tryParse(_priceController.text.trim().replaceAll(',', '.'));
@@ -71,15 +91,19 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
       case 1:
         if (_titleController.text.trim().isEmpty) return 'Add meg a hirdetés címét.';
         if (_addressController.text.trim().isEmpty) return 'Add meg a pontos címet.';
+        if (_normalizedPhone() == null) return 'Add meg a telefonszámot nemzetközi formátumban (pl. +35799123456).';
         return null;
       case 2:
         final price = _parsePrice();
         if (price == null || price < 0) return 'Adj meg érvényes árat (szám, pl. 1200).';
         return null;
-      case 4:
+      case 3:
+        if (!_hasListingType) return null;
+        return _details.validate(isRent: _effectiveIsRent);
+      case 5:
         if (_pickedLocation == null) return 'Jelöld meg a helyszínt a térképen.';
         return null;
-      case 5:
+      case 6:
         if (_photos.isEmpty) return 'Tölts fel legalább 1 fényképet.';
         return null;
       default:
@@ -164,6 +188,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
     if (_currentStep < _totalSteps - 1) {
       setState(() {
         _currentStep++;
+        if (_currentStep == 3 && !_hasListingType) _currentStep++; // nincs paraméter-lépés ehhez a kategóriához
       });
     } else {
       // Utolsó lépés - Duplikáció ellenőrzés és Mentés
@@ -251,6 +276,16 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
           : _selectedCategory;
 
       // Fotók feltöltése a Storage-ba (a letöltési címek kerülnek a hirdetésbe)
+      String contactName = 'CYVESTA';
+      if (!isAdmin) {
+        try {
+          final pSnap = await FirebaseFirestore.instance.collection('partners').doc(uid).get();
+          final n = pSnap.data()?['companyName']?.toString().trim() ?? '';
+          if (n.isNotEmpty) contactName = n;
+        } catch (_) {}
+      }
+      final icalUrl = _effectiveIsRent && _hasListingType ? ICalService.normalizeUrl(_details.icalCtrl.text) : null;
+
       final imageUrls = await _uploadPhotos(uid);
       final location = _pickedLocation;
 
@@ -261,6 +296,12 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         'address': address,
         'addressNormalized': ListingDuplicateService.normalizeAddress(address),
         'price': _parsePrice() ?? 0.0,
+        if (_hasListingType) 'listingType': _effectiveIsRent ? 'rent' : 'sale',
+        if (_hasListingType && _effectiveIsRent) 'priceUnit': _priceUnit,
+        'contactPhone': _normalizedPhone(),
+        'contactName': contactName,
+        if (icalUrl != null) 'icalUrl': icalUrl,
+        if (_hasListingType) 'details': _details.toMap(isRent: _effectiveIsRent),
         if (location != null) 'latitude': location.latitude,
         if (location != null) 'longitude': location.longitude,
         'description': _descriptionController.text.trim(),
@@ -309,6 +350,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
     if (_currentStep > 0) {
       setState(() {
         _currentStep--;
+        if (_currentStep == 3 && !_hasListingType) _currentStep--;
       });
     } else {
       Navigator.pop(context);
@@ -526,7 +568,7 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                 fillColor: const Color(0xFF093753),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               items: _predefinedCategories.map((category) {
                 return DropdownMenuItem(
                   value: category,
@@ -540,6 +582,46 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
               },
             ),
             const SizedBox(height: 16),
+            if (_isPropertyCategory) ...[
+              const Text('Mit hirdet?', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 10,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Kiadó (bérlet)'),
+                    selected: _listingType == 'rent',
+                    onSelected: (_) => setState(() => _listingType = 'rent'),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Eladó'),
+                    selected: _listingType == 'sale',
+                    onSelected: (_) => setState(() => _listingType = 'sale'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_hasListingType && _effectiveIsRent) ...[
+              const Text('Az ár időegysége:', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 10,
+                children: [
+                  ChoiceChip(
+                    label: const Text('€ / éj'),
+                    selected: _priceUnit == 'night',
+                    onSelected: (_) => setState(() => _priceUnit = 'night'),
+                  ),
+                  ChoiceChip(
+                    label: const Text('€ / hó'),
+                    selected: _priceUnit == 'month',
+                    onSelected: (_) => setState(() => _priceUnit = 'month'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_selectedCategory == 'Egyéb (Saját kategória megadása)') ...[
               TextField(
                 controller: _customCategoryController,
@@ -588,6 +670,24 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
+            const SizedBox(height: 24),
+            const Text('Kapcsolattartó telefonszám / WhatsApp', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Nemzetközi formátumban, ezen a számon érhetnek el az érdeklődők.', style: TextStyle(color: Colors.white60, fontSize: 12)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Pl. +35799123456',
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.chat_rounded, color: Color(0xFF99FF99)),
+                filled: true,
+                fillColor: const Color(0xFF093753),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ],
         );
 
@@ -614,7 +714,11 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
         );
 
       case 3:
-      // 4. Lépés: Leírás
+      // 4. Lépés: Jellemzők (szoba, ágy, felszereltség / ingatlan paraméterek)
+        return ListingDetailsForm(details: _details, isRent: _effectiveIsRent);
+
+      case 4:
+      // 5. Lépés: Leírás
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -635,16 +739,16 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
           ],
         );
 
-      case 4:
-      // 5. Lépés: Helyszín a térképen
+      case 5:
+      // 6. Lépés: Helyszín a térképen
         return _buildLocationStep();
 
-      case 5:
-      // 6. Lépés: Fényképek
+      case 6:
+      // 7. Lépés: Fényképek
         return _buildPhotosStep();
 
-      case 6:
-      // 7. Lépés: Összegzés
+      case 7:
+      // 8. Lépés: Összegzés
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -656,8 +760,20 @@ class _AddListingWizardPageState extends State<AddListingWizardPage> {
             const SizedBox(height: 8),
             Text('Helyszín / Cím: ${_addressController.text}', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
+            Text('Telefon / WhatsApp: ${_normalizedPhone() ?? _phoneController.text}', style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 8),
+            if (_hasListingType)
+              Text('Típus: ${_effectiveIsRent ? 'Kiadó (${_priceUnit == 'month' ? 'havi' : 'éjszakai'} ár)' : 'Eladó'}', style: const TextStyle(color: Colors.white70)),
+            if (_hasListingType) const SizedBox(height: 8),
             Text('Ár: ${_priceController.text} €', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
+            if (_hasListingType)
+              Text(
+                'Jellemzők: ${_effectiveIsRent ? '${_details.guests} vendég, ' : ''}${_details.bedrooms} hálószoba, ${_details.bathrooms} fürdő'
+                '${_details.area != null ? ', ${_details.area} m²' : ''}, ${_details.amenities.length} extra',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            if (_hasListingType) const SizedBox(height: 8),
             Text('Leírás: ${_descriptionController.text}', style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Text(

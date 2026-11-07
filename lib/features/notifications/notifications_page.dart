@@ -38,7 +38,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     style: const TextStyle(color: Colors.white70),
                   ),
                   value: _lastMinuteEnabled,
-                  activeColor: Colors.amber,
+                  activeThumbColor: Colors.amber,
                   onChanged: (val) {
                     setState(() => _lastMinuteEnabled = val);
                     if (val) PushService.subscribeToLastMinute();

@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/localization/app_language.dart';
 import '../../core/services/auth_state.dart';
 import '../../core/services/data_service.dart';
-import '../../core/services/stripe_service.dart';
+import '../../core/widgets/app_image.dart';
 import '../../core/widgets/auth_dialogs.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
@@ -18,7 +17,6 @@ import '../gastronomy/gastronomy_page.dart';
 import '../gastronomy/presentation/gastronomy_detail_page.dart';
 import 'firestore_cyprus_map.dart'; // <--- BEIMPORTÁLVA A FIRESTORE TÉRKÉP!
 import '../profile/host_packages_page.dart';
-import '../profile/host_registration_page.dart';
 import '../profile/profile_page.dart';
 import '../transfer/transfer_page.dart';
 
@@ -869,25 +867,25 @@ class _HomePageState extends State<HomePage> {
                                     style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                                DropdownMenuItem<String>(
+                                const DropdownMenuItem<String>(
                                   value: 'paphos',
-                                  child: Text('Paphos & Coral Bay 🏖️', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: Text('Paphos & Coral Bay 🏖️', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 ),
-                                DropdownMenuItem<String>(
+                                const DropdownMenuItem<String>(
                                   value: 'kyrenia',
-                                  child: Text('Kyrenia (Girne) 🏰', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: Text('Kyrenia (Girne) 🏰', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 ),
-                                DropdownMenuItem<String>(
+                                const DropdownMenuItem<String>(
                                   value: 'limassol',
-                                  child: Text('Limassol & Akrotiri 🌴', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: Text('Limassol & Akrotiri 🌴', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 ),
-                                DropdownMenuItem<String>(
+                                const DropdownMenuItem<String>(
                                   value: 'larnaca',
-                                  child: Text('Larnaca & Ayia Napa ⛵', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: Text('Larnaca & Ayia Napa ⛵', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 ),
-                                DropdownMenuItem<String>(
+                                const DropdownMenuItem<String>(
                                   value: 'famagusta',
-                                  child: Text('Famagusta & Long Beach 🌊', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: Text('Famagusta & Long Beach 🌊', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                               onChanged: (val) {
@@ -969,7 +967,7 @@ class _HomePageState extends State<HomePage> {
                                       children: [
                                         Stack(
                                           children: [
-                                            Image.asset(
+                                            AppImage(
                                               imagePath,
                                               height: 195,
                                               width: double.infinity,

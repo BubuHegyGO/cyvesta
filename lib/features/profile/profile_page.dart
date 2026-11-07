@@ -1,3 +1,4 @@
+import '../accommodation/presentation/my_listings_page.dart';
 import 'package:flutter/material.dart';
 import '../../core/localization/app_language.dart';
 import '../../core/widgets/auth_dialogs.dart';
@@ -76,21 +77,25 @@ class _ProfilePageState extends State<ProfilePage> {
       _partnerVerificationMsg = null;
     });
 
-    // Szimulált backend / hálózati ellenőrzés
-    await Future.delayed(const Duration(seconds: 1));
+    // Gyors előellenőrzés. A VÉGLEGES ellenőrzés a szerveren fut (VIES + admin), ez csak azonnali visszajelzés.
+    if (_partnerIdentifierType == 'VAT') {
+      final res = await PartnerVerificationService.verifyVatNumber(identifier);
+      if (!mounted) return;
+      setState(() {
+        _isVerifyingPartner = false;
+        _isPartnerVerified = res['success'] == true;
+        _partnerVerificationMsg = res['message']?.toString();
+      });
+      return;
+    }
 
+    final heOk = RegExp(r'^(HE)?\s?[0-9]{1,7}$').hasMatch(identifier.toUpperCase().replaceAll(RegExp(r'[\s.-]'), ' ').trim());
     setState(() {
       _isVerifyingPartner = false;
-      if (_partnerIdentifierType == 'HE' && identifier.toUpperCase().startsWith('HE')) {
-        _isPartnerVerified = true;
-        _partnerVerificationMsg = 'Cégjegyzékszám sikeresen ellenőrizve és aktív! ✅';
-      } else if (_partnerIdentifierType == 'VAT' && identifier.isNotEmpty) {
-        _isPartnerVerified = true;
-        _partnerVerificationMsg = 'Adószám sikeresen ellenőrizve! ✅';
-      } else {
-        _isPartnerVerified = false;
-        _partnerVerificationMsg = 'Érvénytelen formátum vagy nem található a nyilvántartásban. ❌';
-      }
+      _isPartnerVerified = heOk;
+      _partnerVerificationMsg = heOk
+          ? 'A formátum megfelelő. A cégjegyzékszámot (HE) az adminisztrátor ellenőrzi a cégjegyzékben. ✅'
+          : 'Érvénytelen formátum (várt: HE + szám, pl. HE 123456). ❌';
     });
   }
 
@@ -162,11 +167,11 @@ class _ProfilePageState extends State<ProfilePage> {
             content: Text(
               _isPartnerMode
                   ? (partnerResult?.success == true
-                  ? 'A partner jelentkezésedet rögzítettük. Hirdetést az adminisztrátori jóváhagyás után adhatsz fel. Az e-mail-megerősítéshez kattints a levélben kapott linkre.'
-                  : (partnerResult?.message ?? 'A fiók létrejött, de a partner jelentkezés mentése nem sikerült.'))
+                      ? 'A partner jelentkezésedet rögzítettük, az automatikus ellenőrzés pár másodpercen belül lefut. Hirdetést a jóváhagyás után adhatsz fel (a profilodon az „Állapot frissítése” gombbal nézheted meg). Az e-mail-megerősítéshez kattints a levélben kapott linkre.'
+                      : (partnerResult?.message ?? 'A fiók létrejött, de a partner jelentkezés mentése nem sikerült.'))
                   : (result.verificationEmailSent
-                  ? 'A regisztrációt rögzítettük. Visszaigazoló e-mailt küldtünk a megadott címre, kattints a benne lévő linkre.'
-                  : 'A regisztrációt rögzítettük, de a visszaigazoló e-mail küldése nem sikerült.'),
+                      ? 'A regisztrációt rögzítettük. Visszaigazoló e-mailt küldtünk a megadott címre, kattints a benne lévő linkre.'
+                      : 'A regisztrációt rögzítettük, de a visszaigazoló e-mail küldése nem sikerült.'),
               style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
             actions: [
@@ -212,7 +217,7 @@ class _ProfilePageState extends State<ProfilePage> {
   /// Hirdetésfeladás: csak jóváhagyott partnernek és adminnak jelenik meg a gomb, mindenki más tájékoztatást kap.
   Widget _buildListingAccess() {
     return AnimatedBuilder(
-      animation: Listenable.merge([AuthState.isAdmin, AuthState.partnerStatus]),
+      animation: Listenable.merge([AuthState.isAdmin, AuthState.partnerStatus, AuthState.partnerNote]),
       builder: (context, _) {
         final isAdmin = AuthState.isAdmin.value;
         final status = AuthState.partnerStatus.value;
@@ -220,22 +225,44 @@ class _ProfilePageState extends State<ProfilePage> {
         if (isAdmin || status == 'approved') {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: sunnyGold,
-                  foregroundColor: textDark,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: sunnyGold,
+                      foregroundColor: textDark,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.add_home_work_rounded, size: 18),
+                    label: const Text('Új hirdetés feladása', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AddListingWizardPage()),
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.add_home_work_rounded, size: 18),
-                label: const Text('Új hirdetés feladása', style: TextStyle(fontWeight: FontWeight.bold)),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AddListingWizardPage()),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: textDark,
+                      side: const BorderSide(color: deepBlueIcon, width: 1.4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.list_alt_rounded, size: 18),
+                    label: const Text('Hirdetéseim', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MyListingsPage()),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         }
@@ -254,9 +281,31 @@ class _ProfilePageState extends State<ProfilePage> {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Text(
-            info,
-            style: TextStyle(color: textDark.withValues(alpha: 0.85), fontSize: 12.5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                info,
+                style: TextStyle(color: textDark.withValues(alpha: 0.85), fontSize: 12.5),
+              ),
+              if (AuthState.partnerNote.value.isNotEmpty && status != 'none')
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    AuthState.partnerNote.value,
+                    style: TextStyle(color: textDark.withValues(alpha: 0.7), fontSize: 11.5, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              if (status == 'pending')
+                TextButton.icon(
+                  onPressed: () async {
+                    await AuthState.refreshRoles();
+                    if (mounted) setState(() {});
+                  },
+                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                  label: const Text('Állapot frissítése'),
+                ),
+            ],
           ),
         );
       },
@@ -690,7 +739,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             Switch(
                               value: _enableDirectChat,
-                              activeColor: sunnyGold,
+                              activeThumbColor: sunnyGold,
                               onChanged: (val) => setState(() => _enableDirectChat = val),
                             ),
                           ],

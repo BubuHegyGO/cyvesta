@@ -115,7 +115,7 @@ class StepLocation extends StatelessWidget {
 
           // TÁJEGYSÉG / RÉGIÓ
           DropdownButtonFormField<String>(
-            value: selectedRegion,
+            initialValue: selectedRegion,
             dropdownColor: const Color(0xFF1E261C),
             style: const TextStyle(color: Colors.white),
             decoration: _inputDecoration('Tájegység / Régió *', Icons.landscape),

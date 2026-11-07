@@ -18,7 +18,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    MapPage(), // <-- Itt vettük ki a const kulcsszót!
+    const MapPage(),
     const FavoritesPage(),
     const NotificationsPage(),
     const ProfilePage(),

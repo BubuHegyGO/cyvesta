@@ -122,6 +122,45 @@ class _AdminModerationPageState extends State<AdminModerationPage> {
     );
   }
 
+  /// Az automatikus ellenőrzés (Cloud Function) eredménye.
+  Widget _autoCheckBox({required String? result, required List<String> lines}) {
+    if (result == null && lines.isEmpty) return const SizedBox.shrink();
+    final Color color;
+    final String title;
+    switch (result) {
+      case 'approved':
+      case 'verified':
+        color = Colors.greenAccent;
+        title = 'Automatikus ellenőrzés: rendben';
+        break;
+      case 'rejected':
+      case 'invalid':
+        color = Colors.redAccent;
+        title = 'Automatikus ellenőrzés: elutasítva';
+        break;
+      default:
+        color = sunnyGold;
+        title = 'Automatikus ellenőrzés: kézi átnézés kell';
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+          for (final l in lines) Text('• $l', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
   Widget _actionButton(String label, Color color, VoidCallback onPressed) {
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
@@ -176,14 +215,14 @@ class _AdminModerationPageState extends State<AdminModerationPage> {
                   height: 64,
                   child: images.isNotEmpty
                       ? Image.network(
-                    images.first.toString(),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white38),
-                  )
+                          images.first.toString(),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white38),
+                        )
                       : const ColoredBox(
-                    color: Color(0xFF072A40),
-                    child: Icon(Icons.image_not_supported_outlined, color: Colors.white38),
-                  ),
+                          color: Color(0xFF072A40),
+                          child: Icon(Icons.image_not_supported_outlined, color: Colors.white38),
+                        ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -225,6 +264,13 @@ class _AdminModerationPageState extends State<AdminModerationPage> {
             const SizedBox(height: 4),
             Text('Feladó UID: $partnerId', style: const TextStyle(color: Colors.white38, fontSize: 10)),
           ],
+          if (data['moderation'] is Map)
+            _autoCheckBox(
+              result: (data['moderation'] as Map)['result']?.toString(),
+              lines: ((data['moderation'] as Map)['reasons'] is List)
+                  ? List<String>.from(((data['moderation'] as Map)['reasons'] as List).map((e) => e.toString()))
+                  : <String>[],
+            ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -291,6 +337,14 @@ class _AdminModerationPageState extends State<AdminModerationPage> {
               _statusChip(group),
             ],
           ),
+          if (data['verification'] is Map)
+            _autoCheckBox(
+              result: (data['verification'] as Map)['result']?.toString(),
+              lines: [
+                if (((data['verification'] as Map)['reason'] ?? '').toString().isNotEmpty) (data['verification'] as Map)['reason'].toString(),
+                if (((data['verification'] as Map)['viesName'] ?? '').toString().isNotEmpty) 'VIES név: ${(data['verification'] as Map)['viesName']}',
+              ],
+            ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,

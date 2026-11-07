@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/localization/app_language.dart';
 import '../../../core/services/data_service.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/cyvesta_scaffold.dart';
 import 'accommodation_detail_page.dart';
 
@@ -83,13 +84,13 @@ class _AccommodationListPageState extends State<AccommodationListPage> {
                     builder: (context, allItems, child) {
                       final items = allItems.where((item) {
                         if (item['status'] == 'rejected') return false;
-                        
+
                         // Kategória és szűrés igazítása
                         final cat = item['category']?.toString().toLowerCase() ?? '';
                         if (cat != 'accommodation' && cat != 'rent' && cat != 'sale') return false;
 
                         if (widget.filterType == 'sale') {
-                          if (cat != 'sale' && !item['price'].toString().contains('€320')) return false;
+                          if (cat != 'sale') return false;
                         } else {
                           if (cat == 'sale') return false;
                         }
@@ -139,7 +140,7 @@ class _AccommodationListPageState extends State<AccommodationListPage> {
                                 children: [
                                   Stack(
                                     children: [
-                                      Image.asset(
+                                      AppImage(
                                         imagePath,
                                         height: 180,
                                         width: double.infinity,

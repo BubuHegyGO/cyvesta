@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/localization/app_language.dart';
 import 'core/services/auth_state.dart';
+import 'core/services/data_service.dart';
 import 'features/home/main_screen.dart';
 
 void main() async {
@@ -11,6 +12,7 @@ void main() async {
     await Firebase.initializeApp();
     // Munkamenet-figyelő indítása: újraindítás után is megmarad a bejelentkezés
     AuthState.init();
+    DataService.startListingsSync();
   } catch (e) {
     debugPrint('Firebase init warning: $e');
   }

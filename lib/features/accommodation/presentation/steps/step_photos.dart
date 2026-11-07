@@ -37,7 +37,7 @@ class _StepPhotosPageState extends State<StepPhotosPage> {
         }
       });
 
-      if (_selectedImages.length >= 10) {
+      if (mounted && _selectedImages.length >= 10) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Elérte a maximum 10 db-os fotókorlátot.'),

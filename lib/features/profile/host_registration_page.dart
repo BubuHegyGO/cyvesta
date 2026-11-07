@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class HostRegistrationPage extends StatefulWidget {
-  const HostRegistrationPage({Key? key}) : super(key: key);
+  const HostRegistrationPage({super.key});
 
   @override
   State<HostRegistrationPage> createState() => _HostRegistrationPageState();
@@ -82,7 +82,7 @@ class _HostRegistrationPageState extends State<HostRegistrationPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal.withOpacity(0.5)),
+                  border: Border.all(color: Colors.teal.withValues(alpha: 0.5)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -126,7 +126,7 @@ class _HostRegistrationPageState extends State<HostRegistrationPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal.withOpacity(0.3)),
+                  border: Border.all(color: Colors.teal.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -206,7 +206,7 @@ class _HostRegistrationPageState extends State<HostRegistrationPage> {
               SwitchListTile(
                 title: const Text('Közvetlen chat lehetőség biztosítása', style: TextStyle(color: Colors.white)),
                 value: _isChatEnabled,
-                activeColor: Colors.orange,
+                activeThumbColor: Colors.orange,
                 onChanged: (bool value) {
                   setState(() {
                     _isChatEnabled = value;

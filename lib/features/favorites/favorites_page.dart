@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/localization/app_language.dart';
 import '../../core/services/data_service.dart';
+import '../../core/widgets/app_image.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 import '../accommodation/presentation/accommodation_detail_page.dart';
 import '../experiences/presentation/experience_detail_page.dart';
@@ -36,7 +37,6 @@ class FavoritesPage extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: AppLanguage.currentLocale,
       builder: (context, locale, child) {
-        final isEn = locale != 'hu';
 
         final titleText = locale == 'hu'
             ? 'Mentett Kedvencek ❤️'
@@ -59,10 +59,6 @@ class FavoritesPage extends StatelessWidget {
                     : (locale == 'ru'
                         ? 'Нажмите на иконку сердца, чтобы сохранить виллы, туры и рестораны.'
                         : 'Tap the heart icon on cards to save your favorite villas, tours, and restaurants here.')));
-
-        final viewText = locale == 'hu'
-            ? 'Megtekintés'
-            : (locale == 'el' ? 'Προβολή' : (locale == 'de' ? 'Ansehen' : (locale == 'ru' ? 'Подробнее' : 'View Details')));
 
         return CyvestaScaffold(
           body: SafeArea(
@@ -141,7 +137,7 @@ class FavoritesPage extends StatelessWidget {
                               contentPadding: const EdgeInsets.all(10),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(
+                                child: AppImage(
                                   imagePath,
                                   width: 70,
                                   height: 70,

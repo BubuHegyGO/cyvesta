@@ -166,7 +166,7 @@ class _EditAccommodationPageState extends State<EditAccommodationPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _status,
+                initialValue: _status,
                 dropdownColor: cardBg,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
@@ -294,7 +294,7 @@ class _EditAccommodationPageState extends State<EditAccommodationPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _cancellationPolicy,
+                initialValue: _cancellationPolicy,
                 isExpanded: true,
                 dropdownColor: cardBg,
                 style: const TextStyle(color: Colors.white, fontSize: 13),

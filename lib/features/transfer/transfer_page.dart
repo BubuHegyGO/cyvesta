@@ -11,7 +11,6 @@ class TransferPage extends StatefulWidget {
 }
 
 class _TransferPageState extends State<TransferPage> {
-  static const Color darkBg = Color(0xFF061822);
   static const Color mintGreenBorder = Color(0xFF99FF99);
   static const Color turquoiseGlass = Color(0xCC14D1C4);
   static const Color deepBlueIcon = Color(0xFF072A40);

@@ -7,12 +7,12 @@ class ListingCard extends StatelessWidget {
   final bool isFeatured; // Ez jelzi, hogy kiemelt-e a hirdetés
 
   const ListingCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.imageUrl,
     required this.price,
     required this.isFeatured,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -64,10 +64,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Center(
                 child: Stack(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 50,
                       backgroundColor: cardBg,
-                      child: const Icon(
+                      child: Icon(
                         Icons.person,
                         size: 60,
                         color: accentCyan,

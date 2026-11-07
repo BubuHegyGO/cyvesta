@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapPage extends StatefulWidget {
-  const MapPage({Key? key}) : super(key: key);
+  const MapPage({super.key});
 
   @override
   State<MapPage> createState() => _MapPageState();
 }
 
 class _MapPageState extends State<MapPage> {
-  late GoogleMapController _controller;
 
   // Alapértelmezett fókusz: Ciprus / Páfosz környéke
   static const CameraPosition _initialPosition = CameraPosition(
@@ -50,9 +49,6 @@ class _MapPageState extends State<MapPage> {
         markers: _markers,
         myLocationEnabled: true,
         myLocationButtonEnabled: true,
-        onMapCreated: (GoogleMapController controller) {
-          _controller = controller;
-        },
       ),
     );
   }

@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import '../../../../core/localization/app_language.dart';
 
+/// Valódi, hónapozható foglalási naptár. A foglalt éjszakák (pl. iCal-ból) pirosak, nem választhatók.
 class BookingCalendarWidget extends StatefulWidget {
-  final int pricePerNight;
+  /// Éjszakánkénti ár (csak ha a hirdetés éjszakai áras), különben null.
+  final int? pricePerNight;
+
+  /// Foglalt éjszakák (csak dátum, idő nélkül).
+  final Set<DateTime> blockedNights;
+
+  /// Van-e a hirdetéshez kapcsolt külső naptár (ettől függ a tájékoztató szöveg).
+  final bool synced;
+
   final Function(DateTimeRange?, int)? onBookingSelected;
 
   const BookingCalendarWidget({
     super.key,
-    required this.pricePerNight,
+    this.pricePerNight,
+    this.blockedNights = const {},
+    this.synced = false,
     this.onBookingSelected,
   });
 
@@ -18,61 +29,87 @@ class BookingCalendarWidget extends StatefulWidget {
 class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
   static const Color greenColor = Color(0xFF5A9E32);
   static const Color redColor = Color(0xFFC83A3A);
-  static const Color orangeColor = Color(0xFFE29547);
   static const Color blueColor = Color(0xFF4B80C3);
-  
-  // Itt van a paletta legsötétebb kékje (#080838):
+  static const Color pastColor = Color(0xFF3A3A5A);
   static const Color deepBlueBackground = Color(0xFF080838);
 
-  int? _selectedStartDay = 18;
-  int? _selectedEndDay = 19;
+  late DateTime _month;
+  DateTime? _start;
+  DateTime? _end;
 
-  final Map<int, String> _dayStatuses = const {
-    6: 'half_pending_start',
-    7: 'pending',
-    8: 'pending',
-    9: 'pending',
-    10: 'pending',
-    11: 'half_pending_end',
-    27: 'half_booked_start',
-    28: 'booked',
-    29: 'booked',
-    30: 'half_booked_end',
-  };
-
-  void _onDayTap(int day) {
-    final status = _dayStatuses[day];
-    if (status == 'booked' || status == 'pending') return;
-
-    setState(() {
-      if (_selectedStartDay == null || (_selectedStartDay != null && _selectedEndDay != null)) {
-        _selectedStartDay = day;
-        _selectedEndDay = null;
-      } else if (_selectedStartDay != null && _selectedEndDay == null) {
-        if (day >= _selectedStartDay!) {
-          _selectedEndDay = day;
-        } else {
-          _selectedStartDay = day;
-          _selectedEndDay = null;
-        }
-      }
-    });
+  DateTime get _today {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
   }
 
-  String _getMonthName(String locale) {
-    switch (locale) {
-      case 'en':
-        return 'July 2026';
-      case 'el':
-        return 'Ιούλιος 2026';
-      case 'de':
-        return 'Juli 2026';
-      case 'ru':
-        return 'Июль 2026';
-      case 'hu':
-      default:
-        return 'Július 2026';
+  @override
+  void initState() {
+    super.initState();
+    _month = DateTime(_today.year, _today.month);
+  }
+
+  DateTime _d(DateTime x) => DateTime(x.year, x.month, x.day);
+
+  bool _isBlocked(DateTime day) => widget.blockedNights.contains(_d(day));
+
+  /// A [start, end) éjszakák mind szabadok-e.
+  bool _rangeFree(DateTime start, DateTime end) {
+    var d = start;
+    while (d.isBefore(end)) {
+      if (_isBlocked(d)) return false;
+      d = DateTime(d.year, d.month, d.day + 1);
     }
+    return true;
+  }
+
+  void _onDayTap(DateTime day) {
+    if (day.isBefore(_today)) return;
+
+    setState(() {
+      if (_start == null || _end != null) {
+        // Új választás: érkezés napja (foglalt éjszakán nem lehet érkezni)
+        if (_isBlocked(day)) return;
+        _start = day;
+        _end = null;
+      } else {
+        if (!day.isAfter(_start!)) {
+          if (_isBlocked(day)) return;
+          _start = day;
+          return;
+        }
+        // Távozás napja lehet foglalt nap is, ha a köztes éjszakák szabadok.
+        if (!_rangeFree(_start!, day)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLanguage.currentLocale.value == 'hu'
+                  ? 'A kiválasztott időszakban foglalt napok vannak.'
+                  : 'There are booked days in the selected period.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+        _end = day;
+      }
+    });
+
+    if (_start != null && _end != null) {
+      final nights = _end!.difference(_start!).inDays;
+      widget.onBookingSelected?.call(DateTimeRange(start: _start!, end: _end!), nights);
+    }
+  }
+
+  static const Map<String, List<String>> _months = {
+    'hu': ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'],
+    'en': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    'de': ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+    'el': ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'],
+    'ru': ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+  };
+
+  String _monthTitle(String locale) {
+    final names = _months[locale] ?? _months['en']!;
+    return '${names[_month.month - 1]} ${_month.year}';
   }
 
   List<String> _getWeekDays(String locale) {
@@ -91,17 +128,27 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
     }
   }
 
+  String _fmt(DateTime d) => '${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}.';
+
+  void _changeMonth(int delta) {
+    final next = DateTime(_month.year, _month.month + delta);
+    final first = DateTime(_today.year, _today.month);
+    if (next.isBefore(first)) return; // múltba nem lapozunk
+    setState(() => _month = next);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: AppLanguage.currentLocale,
       builder: (context, locale, child) {
-        final int nightCount = (_selectedStartDay != null && _selectedEndDay != null)
-            ? (_selectedEndDay! - _selectedStartDay! + 1)
-            : (_selectedStartDay != null ? 1 : 0);
-        
-        final int totalPrice = nightCount * widget.pricePerNight;
+        final isHu = locale == 'hu';
         final weekDays = _getWeekDays(locale);
+        final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+        final offset = DateTime(_month.year, _month.month, 1).weekday - 1; // hétfő = 0
+
+        final nights = (_start != null && _end != null) ? _end!.difference(_start!).inDays : 0;
+        final total = (widget.pricePerNight != null && nights > 0) ? nights * widget.pricePerNight! : null;
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -117,26 +164,19 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _getMonthName(locale),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  Text(_monthTitle(locale), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                   Row(
                     children: [
                       IconButton(
                         icon: const Icon(Icons.chevron_left, color: Colors.white70),
-                        onPressed: () {},
+                        onPressed: () => _changeMonth(-1),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
                       const SizedBox(width: 16),
                       IconButton(
                         icon: const Icon(Icons.chevron_right, color: Colors.white70),
-                        onPressed: () {},
+                        onPressed: () => _changeMonth(1),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -158,36 +198,30 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
                   crossAxisSpacing: 4,
                   mainAxisSpacing: 4,
                 ),
-                itemCount: 33,
+                itemCount: offset + daysInMonth,
                 itemBuilder: (context, index) {
-                  if (index < 2) {
-                    return const SizedBox();
-                  }
-                  final day = index - 1;
-                  bool isSelected = false;
-                  if (_selectedStartDay != null && _selectedEndDay != null) {
-                    isSelected = day >= _selectedStartDay! && day <= _selectedEndDay!;
-                  } else if (_selectedStartDay != null) {
-                    isSelected = day == _selectedStartDay;
-                  }
-                  final status = isSelected ? 'selected' : (_dayStatuses[day] ?? 'available');
-
-                  return GestureDetector(
-                    onTap: () => _onDayTap(day),
-                    child: _buildCalendarTile(day, status),
-                  );
+                  if (index < offset) return const SizedBox();
+                  final day = DateTime(_month.year, _month.month, index - offset + 1);
+                  return GestureDetector(onTap: () => _onDayTap(day), child: _tile(day));
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _LegendItem(color: greenColor, label: AppLanguage.tr('calendar_free')),
                   _LegendItem(color: redColor, label: AppLanguage.tr('calendar_booked')),
-                  _LegendItem(color: orangeColor, label: AppLanguage.tr('calendar_pending')),
+                  _LegendItem(color: blueColor, label: isHu ? 'Kiválasztva' : 'Selected'),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
+              Text(
+                widget.synced
+                    ? (isHu ? 'A foglalt napok a hirdető külső naptárából (iCal) frissülnek.' : 'Booked days are synced from the host\'s external calendar (iCal).')
+                    : (isHu ? 'A hirdető nem kapcsolt külső naptárat – a szabad időpontot egyeztesd vele.' : 'No external calendar linked – please confirm availability with the host.'),
+                style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+              ),
+              const SizedBox(height: 12),
               const Divider(color: Colors.white24, height: 1),
               const SizedBox(height: 14),
               Row(
@@ -196,45 +230,40 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AppLanguage.tr('selected_dates_label'),
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
-                      ),
+                      Text(AppLanguage.tr('selected_dates_label'), style: const TextStyle(color: Colors.white54, fontSize: 11)),
                       const SizedBox(height: 2),
                       Text(
-                        (_selectedStartDay != null && _selectedEndDay != null)
-                            ? 'Júl $_selectedStartDay. – Júl $_selectedEndDay.'
-                            : (_selectedStartDay != null)
-                                ? 'Júl $_selectedStartDay.'
-                                : AppLanguage.tr('search_region_hint'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
+                        (_start != null && _end != null)
+                            ? '${_fmt(_start!)} – ${_fmt(_end!)} ($nights ${isHu ? 'éj' : 'nights'})'
+                            : (_start != null)
+                                ? '${_fmt(_start!)} – ${isHu ? 'válassz távozást' : 'pick check-out'}'
+                                : (isHu ? 'Válassz érkezési napot' : 'Pick a check-in day'),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ],
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        AppLanguage.tr('total_price_label'),
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '€$totalPrice',
-                        style: const TextStyle(
-                          color: Color(0xFF8BC541),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
+                  if (total != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(AppLanguage.tr('total_price_label'), style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        const SizedBox(height: 2),
+                        Text('€$total', style: const TextStyle(color: Color(0xFF8BC541), fontWeight: FontWeight.bold, fontSize: 15)),
+                      ],
+                    ),
                 ],
               ),
+              if (_start != null && _end != null) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF9F1C), foregroundColor: Colors.white),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    child: Text(isHu ? 'Kész' : 'Done'),
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -242,104 +271,37 @@ class _BookingCalendarWidgetState extends State<BookingCalendarWidget> {
     );
   }
 
-  Widget _buildCalendarTile(int day, String status) {
-    final String priceText = '€${widget.pricePerNight}';
+  Widget _tile(DateTime day) {
+    final past = day.isBefore(_today);
+    final blocked = _isBlocked(day);
+    final selected = _start != null &&
+        (_end == null ? day == _start : (!day.isBefore(_start!) && !day.isAfter(_end!)));
 
-    if (status == 'selected') {
-      return Container(
-        decoration: BoxDecoration(color: blueColor, borderRadius: BorderRadius.circular(4)),
-        child: _buildTileText(day, priceText, Colors.white),
-      );
+    Color color;
+    if (selected) {
+      color = blueColor;
+    } else if (past) {
+      color = pastColor;
+    } else if (blocked) {
+      color = redColor;
+    } else {
+      color = greenColor;
     }
-    if (status == 'pending') {
-      return Container(
-        decoration: BoxDecoration(color: orangeColor, borderRadius: BorderRadius.circular(4)),
-        child: _buildTileText(day, '', Colors.white),
-      );
-    }
-    if (status == 'booked') {
-      return Container(
-        decoration: BoxDecoration(color: redColor, borderRadius: BorderRadius.circular(4)),
-        child: _buildTileText(day, '', Colors.white),
-      );
-    }
-    if (status.startsWith('half_')) {
-      final Color secondColor = status.contains('pending') ? orangeColor : redColor;
-      final bool isStart = status.contains('start');
 
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: CustomPaint(
-          painter: _DiagonalTilePainter(
-            color1: isStart ? greenColor : secondColor,
-            color2: isStart ? secondColor : greenColor,
-          ),
-          child: _buildTileText(day, priceText, Colors.white),
-        ),
-      );
-    }
+    final showPrice = !past && !blocked && widget.pricePerNight != null;
 
     return Container(
-      decoration: BoxDecoration(color: greenColor, borderRadius: BorderRadius.circular(4)),
-      child: _buildTileText(day, priceText, Colors.white),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('${day.day}', style: TextStyle(color: past ? Colors.white38 : Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          if (showPrice)
+            Text('€${widget.pricePerNight}', style: const TextStyle(color: Colors.white70, fontSize: 8.5, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
-
-  Widget _buildTileText(int day, String price, Color textColor) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          '$day',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-        if (price.isNotEmpty)
-          Text(
-            price,
-            style: TextStyle(
-              color: textColor.withAlpha(220),
-              fontSize: 8.5,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _DiagonalTilePainter extends CustomPainter {
-  final Color color1;
-  final Color color2;
-
-  _DiagonalTilePainter({required this.color1, required this.color2});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint1 = Paint()..color = color1;
-    final paint2 = Paint()..color = color2;
-
-    final path1 = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(0, size.height)
-      ..close();
-
-    final path2 = Path()
-      ..moveTo(size.width, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(path1, paint1);
-    canvas.drawPath(path2, paint2);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _DayHeader extends StatelessWidget {
@@ -353,11 +315,7 @@ class _DayHeader extends StatelessWidget {
       child: Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white60,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
+        style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -373,27 +331,9 @@ class _LegendItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          alignment: Alignment.center,
-          child: const Text(
-            '26',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          '- $label',
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
-        ),
+        Container(width: 14, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
       ],
     );
   }

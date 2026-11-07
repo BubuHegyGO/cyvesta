@@ -1,18 +1,28 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../core/localization/app_language.dart';
+import '../../core/services/auth_state.dart';
+import '../../core/services/chat_service.dart';
 import '../../core/widgets/cyvesta_scaffold.dart';
 
+/// Valódi (Firestore-alapú) beszélgetés két fél között.
+/// - Meglévő chat: [chatId] megadva.
+/// - Új chat egy hirdetésből: [seed] megadva, a chat az első üzenetnél jön létre.
 class ChatDetailPage extends StatefulWidget {
+  final String? chatId;
+  final ChatSeed? seed;
   final String partnerName;
   final String partnerSubtitle;
-  final String avatarPath;
+  final String? initialText;
 
   const ChatDetailPage({
     super.key,
+    this.chatId,
+    this.seed,
     required this.partnerName,
     required this.partnerSubtitle,
-    this.avatarPath = 'assets/images/szarvas.png',
-  });
+    this.initialText,
+  }) : assert(chatId != null || seed != null);
 
   @override
   State<ChatDetailPage> createState() => _ChatDetailPageState();
@@ -20,74 +30,67 @@ class ChatDetailPage extends StatefulWidget {
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
   static const Color mintGreenBorder = Color(0xFF99FF99);
-  static const Color turquoiseGlass = Color(0xCC14D1C4);
   static const Color deepBlueIcon = Color(0xFF072A40);
   static const Color textDark = Color(0xFF0F172A);
   static const Color sunnyGold = Color(0xFFFF9F1C);
 
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late List<Map<String, dynamic>> _messages;
+
+  late final String _chatId;
+  bool _chatExists = false;
+  bool _checking = true;
+  bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    final isHu = AppLanguage.currentLocale.value == 'hu';
-    _messages = [
-      {
-        'isMe': false,
-        'text': isHu
-            ? 'Üdvözöljük Cipruson! Miben segíthetek a szállással / szolgáltatással kapcsolatban?'
-            : 'Hello! Welcome to Cyprus. How can I help you regarding this property / service?',
-        'time': '10:15',
-      },
-    ];
+    final uid = AuthState.currentUserId ?? '';
+    _chatId = widget.chatId ?? ChatService.chatIdFor(widget.seed!.listingId, uid);
+    if (widget.initialText != null) _msgController.text = widget.initialText!;
+    _init();
   }
 
-  void _sendMessage() {
+  Future<void> _init() async {
+    try {
+      _chatExists = await ChatService.chatExists(_chatId);
+    } catch (_) {
+      _chatExists = false;
+    }
+    if (mounted) setState(() => _checking = false);
+  }
+
+  Future<void> _sendMessage() async {
     final text = _msgController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    try {
+      if (!_chatExists && widget.seed != null) {
+        await ChatService.ensureChat(widget.seed!);
+        _chatExists = true;
+      }
+      await ChatService.sendMessage(_chatId, text);
+      _msgController.clear();
+      _scrollToEnd();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Az üzenet nem ment el: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
-    final isHu = AppLanguage.currentLocale.value == 'hu';
-
-    setState(() {
-      _messages.add({
-        'isMe': true,
-        'text': text,
-        'time': "${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}",
-      });
-    });
-    _msgController.clear();
-
-    Future.delayed(const Duration(milliseconds: 100), () {
+  void _scrollToEnd() {
+    Future.delayed(const Duration(milliseconds: 150), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
-      }
-    });
-
-    // Automatikus válasz az aktuális nyelven
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _messages.add({
-            'isMe': false,
-            'text': isHu
-                ? 'Köszönjük az üzenetet! A partner hamarosan válaszol itt és WhatsApp-on is. 🏝️'
-                : 'Thank you for your message! The partner will reply shortly here and on WhatsApp. 🏝️',
-            'time': "${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}",
-          });
-        });
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
       }
     });
   }
@@ -97,6 +100,90 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _msgController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  String _time(Timestamp? ts) {
+    if (ts == null) return '';
+    final d = ts.toDate();
+    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _bubble(Map<String, dynamic> m, bool isMe) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        decoration: BoxDecoration(
+          color: isMe ? sunnyGold : const Color(0xFF093753),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 16),
+          ),
+          border: Border.all(color: isMe ? Colors.white70 : mintGreenBorder.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Text(
+              m['text']?.toString() ?? '',
+              style: TextStyle(color: isMe ? textDark : Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _time(m['createdAt'] is Timestamp ? m['createdAt'] as Timestamp : null),
+              style: TextStyle(color: isMe ? textDark.withValues(alpha: 0.6) : Colors.white54, fontSize: 9.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _messages(bool isHu) {
+    if (_checking) return const Center(child: CircularProgressIndicator());
+    if (!_chatExists) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            isHu ? 'Írd meg az első üzenetet a hirdetőnek!' : 'Send the first message to the host!',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ),
+      );
+    }
+    final me = AuthState.currentUserId;
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: ChatService.messagesStream(_chatId),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(
+            child: Text('Hiba az üzenetek betöltésekor: ${snap.error}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          );
+        }
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        final docs = snap.data!.docs;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          }
+        });
+        return ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(14),
+          itemCount: docs.length,
+          itemBuilder: (context, i) {
+            final m = docs[i].data();
+            return _bubble(m, m['senderId'] == me);
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -110,7 +197,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           body: SafeArea(
             child: Column(
               children: [
-                // Fejléc
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
@@ -127,20 +213,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.asset(
-                          widget.avatarPath,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => Container(
-                            width: 40,
-                            height: 40,
-                            color: const Color(0xFF093753),
-                            child: const Icon(Icons.person, color: mintGreenBorder),
-                          ),
-                        ),
+                      const CircleAvatar(
+                        backgroundColor: Color(0xFF093753),
+                        child: Icon(Icons.person, color: mintGreenBorder),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -165,63 +240,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     ],
                   ),
                 ),
-
-                // Üzenetek listája
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(14),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final m = _messages[index];
-                      final isMe = m['isMe'] as bool;
-
-                      return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                          decoration: BoxDecoration(
-                            color: isMe ? sunnyGold : const Color(0xFF093753),
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(16),
-                              topRight: const Radius.circular(16),
-                              bottomLeft: Radius.circular(isMe ? 16 : 4),
-                              bottomRight: Radius.circular(isMe ? 4 : 16),
-                            ),
-                            border: Border.all(
-                              color: isMe ? Colors.white70 : mintGreenBorder.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                m['text'] as String,
-                                style: TextStyle(
-                                  color: isMe ? textDark : Colors.white,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                m['time'] as String,
-                                style: TextStyle(
-                                  color: isMe ? textDark.withValues(alpha: 0.6) : Colors.white54,
-                                  fontSize: 9.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // Üzenetküldő beviteli mező
+                Expanded(child: _messages(isHu)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
@@ -233,8 +252,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       Expanded(
                         child: TextField(
                           controller: _msgController,
+                          minLines: 1,
+                          maxLines: 4,
+                          maxLength: 2000,
                           style: const TextStyle(color: Colors.white, fontSize: 13),
                           decoration: InputDecoration(
+                            counterText: '',
                             hintText: isHu ? 'Írj üzenetet...' : 'Type a message...',
                             hintStyle: const TextStyle(color: Colors.white54, fontSize: 12),
                             filled: true,
@@ -242,16 +265,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
                           ),
-                          onSubmitted: (_) => _sendMessage(),
                         ),
                       ),
                       const SizedBox(width: 8),
                       CircleAvatar(
                         backgroundColor: sunnyGold,
-                        child: IconButton(
-                          icon: const Icon(Icons.send_rounded, color: textDark, size: 20),
-                          onPressed: _sendMessage,
-                        ),
+                        child: _sending
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: textDark))
+                            : IconButton(
+                                icon: const Icon(Icons.send_rounded, color: textDark, size: 20),
+                                onPressed: _sendMessage,
+                              ),
                       ),
                     ],
                   ),

@@ -61,7 +61,6 @@ class _ExperienceDetailPageState extends State<ExperienceDetailPage> {
   Widget build(BuildContext context) {
     final title = widget.itemData['title']?.toString() ?? 'BLUE LAGOON CRUISE ⛵';
     final location = widget.itemData['location']?.toString() ?? 'Latchi Harbor & Akamas Marina';
-    final price = widget.itemData['price']?.toString() ?? '€45 / person';
     final rating = widget.itemData['rating']?.toString() ?? '4.98';
     final desc = widget.itemData['description']?.toString() ?? 'Luxury yacht cruise to the Crystal Blue Lagoon with swimming and Cypriot buffet lunch.';
     final imagePath = widget.itemData['imagePath']?.toString() ?? 'assets/images/yacht.png';
