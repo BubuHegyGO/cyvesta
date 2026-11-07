@@ -27,9 +27,9 @@ AlertDialog _styledDialog({
 }
 
 ButtonStyle get _primaryStyle => ElevatedButton.styleFrom(
-  backgroundColor: _dialogAccent,
-  foregroundColor: _dialogTextDark,
-);
+      backgroundColor: _dialogAccent,
+      foregroundColor: _dialogTextDark,
+    );
 
 // -----------------------------------------------------------------------------
 // Elfelejtett jelszó
@@ -94,7 +94,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
         title: 'Levél elküldve ✅',
         content: const Text(
           'Ha ezzel az e-mail címmel létezik fiók, elküldtük a jelszó-visszaállító levelet. '
-              'Nézd meg a levélszemét (spam) mappát is.',
+          'Nézd meg a levélszemét (spam) mappát is.',
           style: TextStyle(color: Colors.white70, fontSize: 13),
         ),
         actions: [
@@ -150,10 +150,10 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
           onPressed: _busy ? null : _submit,
           child: _busy
               ? const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Text('Küldés', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
@@ -239,8 +239,8 @@ class _VerifyEmailDialogState extends State<_VerifyEmailDialog> {
         children: [
           Text(
             'Hirdetés feladásához meg kell erősítened az e-mail címedet'
-                '${email.isNotEmpty ? ' ($email)' : ''}. '
-                'Kattints a regisztrációkor kapott levélben lévő linkre.',
+            '${email.isNotEmpty ? ' ($email)' : ''}. '
+            'Kattints a regisztrációkor kapott levélben lévő linkre.',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           if (_info != null) ...[
@@ -268,6 +268,104 @@ class _VerifyEmailDialogState extends State<_VerifyEmailDialog> {
           style: _primaryStyle,
           onPressed: _busy ? null : _check,
           child: const Text('Megerősítettem', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Regisztráció után: "Küldtünk visszaigazoló e-mailt"
+// -----------------------------------------------------------------------------
+
+Future<void> showVerificationSentDialog(
+  BuildContext context, {
+  required String email,
+  bool sent = true,
+  String? extraMessage,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder: (_) => _VerificationSentDialog(email: email, sent: sent, extraMessage: extraMessage),
+  );
+}
+
+class _VerificationSentDialog extends StatefulWidget {
+  final String email;
+  final bool sent;
+  final String? extraMessage;
+
+  const _VerificationSentDialog({required this.email, required this.sent, this.extraMessage});
+
+  @override
+  State<_VerificationSentDialog> createState() => _VerificationSentDialogState();
+}
+
+class _VerificationSentDialogState extends State<_VerificationSentDialog> {
+  bool _resending = false;
+  late bool _sent = widget.sent;
+  String? _note;
+
+  Future<void> _resend() async {
+    setState(() {
+      _resending = true;
+      _note = null;
+    });
+    final r = await AuthState.sendVerificationEmail();
+    if (!mounted) return;
+    setState(() {
+      _resending = false;
+      if (r.success) _sent = true;
+      _note = r.success ? 'Újra elküldtük a levelet.' : (r.message ?? 'Az újraküldés nem sikerült, próbáld később.');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _styledDialog(
+      title: 'Sikeres regisztráció! 🎉',
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _sent
+                  ? 'Küldtünk egy visszaigazoló e-mailt ide:'
+                  : 'A fiók létrejött, de a visszaigazoló e-mail küldése nem sikerült. Az újraküldés gombbal próbáld újra.',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            if (_sent) ...[
+              const SizedBox(height: 6),
+              Text(widget.email, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 10),
+              const Text(
+                'Kattints a levélben lévő linkre a fiókod megerősítéséhez. Ha nem találod, nézd meg a Spam / Levélszemét mappát is.',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+            ],
+            if (widget.extraMessage != null) ...[
+              const SizedBox(height: 10),
+              Text(widget.extraMessage!, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            ],
+            if (_note != null) ...[
+              const SizedBox(height: 10),
+              Text(_note!, style: const TextStyle(color: _dialogBorder, fontSize: 12.5)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _resending ? null : _resend,
+          child: _resending
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Újraküldés'),
+        ),
+        ElevatedButton(
+          style: _primaryStyle,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Rendben', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );

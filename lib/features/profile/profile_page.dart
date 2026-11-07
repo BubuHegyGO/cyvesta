@@ -155,34 +155,17 @@ class _ProfilePageState extends State<ProfilePage> {
           if (!mounted) return;
         }
 
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: deepBlueIcon,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: mintGreenBorder, width: 1.4),
-            ),
-            title: const Text('Sikeres Regisztráció! 🎉', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            content: Text(
-              _isPartnerMode
-                  ? (partnerResult?.success == true
-                      ? 'A partner jelentkezésedet rögzítettük, az automatikus ellenőrzés pár másodpercen belül lefut. Hirdetést a jóváhagyás után adhatsz fel (a profilodon az „Állapot frissítése” gombbal nézheted meg). Az e-mail-megerősítéshez kattints a levélben kapott linkre.'
-                      : (partnerResult?.message ?? 'A fiók létrejött, de a partner jelentkezés mentése nem sikerült.'))
-                  : (result.verificationEmailSent
-                      ? 'A regisztrációt rögzítettük. Visszaigazoló e-mailt küldtünk a megadott címre, kattints a benne lévő linkre.'
-                      : 'A regisztrációt rögzítettük, de a visszaigazoló e-mail küldése nem sikerült.'),
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: sunnyGold, foregroundColor: textDark),
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Rendben', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+        await showVerificationSentDialog(
+          context,
+          email: _emailController.text.trim(),
+          sent: result.verificationEmailSent,
+          extraMessage: _isPartnerMode
+              ? (partnerResult?.success == true
+                  ? 'A partner jelentkezésedet rögzítettük, az automatikus ellenőrzés pár másodpercen belül lefut. Hirdetést a jóváhagyás után adhatsz fel (a profilodon az „Állapot frissítése” gombbal nézheted meg).'
+                  : (partnerResult?.message ?? 'A partner jelentkezés mentése nem sikerült.'))
+              : null,
         );
+        if (!mounted) return;
         setState(() {});
       } else if (!result.success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

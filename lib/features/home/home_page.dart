@@ -379,14 +379,10 @@ class _HomePageState extends State<HomePage> {
                               if (resultReg.success) {
                                 if (ctx.mounted) Navigator.pop(ctx);
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        resultReg.verificationEmailSent
-                                            ? 'Sikeres regisztráció! Visszaigazoló e-mailt küldtünk a megadott címre. ✅'
-                                            : 'Sikeres regisztráció! ✅',
-                                      ),
-                                    ),
+                                  showVerificationSentDialog(
+                                    context,
+                                    email: email,
+                                    sent: resultReg.verificationEmailSent,
                                   );
                                 }
                               } else {
